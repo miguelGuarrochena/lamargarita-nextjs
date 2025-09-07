@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# La Margarita - Sistema de Reservas
 
-## Getting Started
+Sistema de reservas para campo familiar migrado de React + Express.js a Next.js 14+ con App Router.
 
-First, run the development server:
+## Configuración del Entorno
+
+Antes de ejecutar la aplicación, crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# MongoDB Connection
+MONGODB_URI=mongodb://localhost:27017/lamargarita
+# o para MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/lamargarita
+
+# JWT Secret (genera una clave secreta segura)
+JWT_SECRET=tu_jwt_secret_muy_seguro_aqui
+
+# NextAuth Configuration
+NEXTAUTH_SECRET=tu_nextauth_secret_aqui
+NEXTAUTH_URL=http://localhost:3000
+
+# API URL
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Instalación y Ejecución
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Instalar dependencias:
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Ejecutar el servidor de desarrollo:
+```bash
+npm run dev
+```
 
-## Learn More
+3. Abrir [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-To learn more about Next.js, take a look at the following resources:
+## Estructura del Proyecto
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/src/app` - Páginas y rutas de la aplicación (App Router)
+- `/src/components` - Componentes React reutilizables
+- `/src/hooks` - Custom hooks para estado y lógica
+- `/src/lib` - Utilidades, modelos y configuración
+- `/src/store` - Redux store y slices
+- `/src/types` - Definiciones de tipos TypeScript
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Funcionalidades
 
-## Deploy on Vercel
+- **Autenticación**: Login/registro con JWT
+- **Calendario**: Visualización y gestión de reservas
+- **Tipos de Reserva**: CT, PA, PR, CS, NC, FL, FR, VC
+- **Gestión de Eventos**: Crear, editar y eliminar reservas
+- **Responsive**: Diseño adaptable a dispositivos móviles
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tecnologías
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 14+ (App Router)
+- TypeScript
+- Redux Toolkit
+- React Big Calendar
+- MongoDB + Mongoose
+- Tailwind CSS
+- React Modal
+- Date-fns
+
+## Migración desde React + Express
+
+Este proyecto fue migrado desde una aplicación React + Express.js manteniendo:
+- Toda la lógica de negocio original
+- Diseño y estilos idénticos
+- Funcionalidad completa del sistema de reservas
+- Compatibilidad con la base de datos existente
+
+## Deploy en Vercel
+
+La aplicación está optimizada para deployment en Vercel. Asegúrate de configurar las variables de entorno en el panel de Vercel.

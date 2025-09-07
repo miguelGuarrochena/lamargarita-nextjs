@@ -1,26 +1,251 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*GENERAL*/
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+/* Modal */
+.ReactModalPortal > div{
+  opacity: 0;
+}
+
+.ReactModalPortal .ReactModal__Overlay {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  transition: opacity .2s ease-in-out;
+  z-index: 1030;
+}
+
+.modal-fondo {
+  background-color: rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  position: fixed;
+}
+
+.ReactModalPortal .ReactModal__Overlay--after-open {
+  opacity: 1;
+}
+
+.ReactModalPortal .ReactModal__Overlay--before-close {
+  opacity: 0;
+}
+
+.modal {
+  background: white;
+  border-radius: 5px;
+  color: rgb(51, 51, 51);
+  display: inline;
+  max-height: 680px;
+  max-width: 500px;
+  outline: none;
+  padding: 10px;
+}
+
+.modal label {
+  font-weight: bold;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.modal-header button {
+  border-radius: 50%;
+}
+
+/* FABS */
+.fab {
+  border-radius: 100%;
+  bottom: 25px;
+  font-size: 30px;
+  padding: 25px;
+  position: fixed;
+  right: 25px;
+  z-index: 1000;
+}
+
+.fab-danger {
+  border-radius: 100%;
+  bottom: 25px;
+  font-size: 22px;
+  position: fixed;
+  left: 25px;
+  width: 70px;
+  height: 70px;
+  z-index: 1000;
+}
+
+/* Legacy booking type colors - kept for calendar events */
+.total {
+  background-color: #e74c3c;
+}
+
+.parcial {
+  background-color: #edc308;
+}
+
+.principal {
+  background-color: #086ded;
+}
+
+.casita {
+  background-color: #808000;
+}
+
+.no-compartible {
+  background-color: #d8ed08;
+}
+
+.finde-libre {
+  background-color: #5dade2;
+}
+
+.show-booking {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* Custom styles for Mantine integration */
+body {
+  background-color: #f8f9fa;
+}
+
+/* DatePicker styling for Mantine integration */
+.mantine-datepicker {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background-color: white;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.mantine-datepicker:focus {
+  border-color: #228be6;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(34, 139, 230, 0.25);
+}
+
+/* React Big Calendar Styles */
+.rbc-calendar {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+}
+
+.rbc-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  padding: 10px;
+}
+
+.rbc-month-view {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.rbc-date-cell {
+  padding: 5px;
+}
+
+.rbc-date-cell.rbc-off-range {
+  color: #6c757d;
+}
+
+.rbc-event {
+  border-radius: 4px;
+  border: none;
+  padding: 2px 5px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rbc-event:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.rbc-selected {
+  background-color: #007bff !important;
+}
+
+.rbc-today {
+  background-color: #fff3cd;
+}
+
+.rbc-toolbar {
+  background: white;
+  padding: 15px 20px;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 0;
+}
+
+.rbc-toolbar button {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 0 2px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.rbc-toolbar button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.rbc-toolbar button.rbc-active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.rbc-toolbar-label {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Event styling improvements */
+.event-title {
+  font-weight: 500;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .rbc-calendar {
+    margin: 10px;
+  }
+  
+  .rbc-toolbar {
+    padding: 10px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .rbc-toolbar .rbc-btn-group {
+    display: flex;
+    justify-content: center;
+  }
 }
