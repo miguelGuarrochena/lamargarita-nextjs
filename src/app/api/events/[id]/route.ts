@@ -10,14 +10,14 @@ const isValidDate = (date: any): boolean => {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
     
     const decoded = await validateJWT(request);
     const eventData = await request.json();
-    const eventId = params.id;
+    const { id: eventId } = await params;
 
     // Validate required fields
     if (!eventData.title) {
@@ -79,13 +79,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
     
     const decoded = await validateJWT(request);
-    const eventId = params.id;
+    const { id: eventId } = await params;
 
     const event = await Event.findById(eventId);
 

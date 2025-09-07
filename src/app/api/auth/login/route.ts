@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
     
     // Also try to list all users to debug
     const allUsers = await User.find({}).limit(5);
-    console.log('Total users in collection:', allUsers.length);
-    console.log('Sample users:', allUsers.map(u => ({ email: u.email, name: u.name })));
+
+   
 
     if (!user) {
       return NextResponse.json(
