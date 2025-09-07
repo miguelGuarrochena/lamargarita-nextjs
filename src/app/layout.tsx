@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import ReduxProvider from "@/components/providers/ReduxProvider";
 import { MantineProvider, ColorSchemeScript } from '@mantine/core';
 import '@mantine/core/styles.css';
 
@@ -46,9 +45,7 @@ export default function RootLayout({
           }}
           defaultColorScheme="light"
         >
-          <ReduxProvider>
-            {children}
-          </ReduxProvider>
+          {children}
         </MantineProvider>
       </body>
     </html>

@@ -1,19 +1,14 @@
-import { useAppDispatch, useAppSelector } from './useAppDispatch';
+import { useCallback } from 'react';
 import { LoginCredentials, RegisterCredentials } from '@/types';
-import {
-  clearErrorMessage,
-  onChecking,
-  onLogin,
-  onLogout,
-  onLogoutCalendar,
-} from '@/store';
+import { useAuthStore as useAuthStoreZustand } from '@/stores/useAuthStore';
+import { useCalendarStore } from '@/stores/useCalendarStore';
 
 export const useAuthStore = () => {
-  const { status, user, errorMessage } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
+  const { status, user, errorMessage, onChecking, onLogin, onLogout, clearErrorMessage } = useAuthStoreZustand();
+  const { onLogoutCalendar } = useCalendarStore();
 
-  const startLogin = async ({ email, password }: LoginCredentials) => {
-    dispatch(onChecking());
+  const startLogin = useCallback(async ({ email, password }: LoginCredentials) => {
+    onChecking();
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -30,23 +25,23 @@ export const useAuthStore = () => {
           localStorage.setItem('token', data.token);
           localStorage.setItem('token-init-date', new Date().getTime().toString());
         }
-        dispatch(onLogin({ name: data.name, uid: data.uid, email }));
+        onLogin({ name: data.name, uid: data.uid, email });
       } else {
-        dispatch(onLogout(data.msg || 'Credenciales incorrectas'));
+        onLogout(data.msg || 'Credenciales incorrectas');
         setTimeout(() => {
-          dispatch(clearErrorMessage());
+          clearErrorMessage();
         }, 10);
       }
     } catch (error) {
-      dispatch(onLogout('Error de conexión'));
+      onLogout('Error de conexión');
       setTimeout(() => {
-        dispatch(clearErrorMessage());
+        clearErrorMessage();
       }, 10);
     }
-  };
+  }, [onChecking, onLogin, onLogout, clearErrorMessage]);
 
-  const startRegister = async ({ email, password, name }: RegisterCredentials) => {
-    dispatch(onChecking());
+  const startRegister = useCallback(async ({ email, password, name }: RegisterCredentials) => {
+    onChecking();
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -63,28 +58,28 @@ export const useAuthStore = () => {
           localStorage.setItem('token', data.token);
           localStorage.setItem('token-init-date', new Date().getTime().toString());
         }
-        dispatch(onLogin({ name: data.name, uid: data.uid, email }));
+        onLogin({ name: data.name, uid: data.uid, email });
       } else {
-        dispatch(onLogout(data.msg || 'Error al registrar usuario'));
+        onLogout(data.msg || 'Error al registrar usuario');
         setTimeout(() => {
-          dispatch(clearErrorMessage());
+          clearErrorMessage();
         }, 10);
       }
     } catch (error) {
-      dispatch(onLogout('Error de conexión'));
+      onLogout('Error de conexión');
       setTimeout(() => {
-        dispatch(clearErrorMessage());
+        clearErrorMessage();
       }, 10);
     }
-  };
+  }, [onChecking, onLogin, onLogout, clearErrorMessage]);
 
-  const checkAuthToken = async () => {
-    if (typeof window === 'undefined') return dispatch(onLogout());
+  const checkAuthToken = useCallback(async () => {
+    if (typeof window === 'undefined') return onLogout();
     
     const token = localStorage.getItem('token');
     const tokenInitDate = localStorage.getItem('token-init-date');
     
-    if (!token) return dispatch(onLogout());
+    if (!token) return onLogout();
 
     // Check if token is less than 6 days old (before 7 day expiration)
     if (tokenInitDate) {
@@ -99,7 +94,7 @@ export const useAuthStore = () => {
         if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
-            dispatch(onLogin(userData));
+            onLogin(userData);
             return;
           } catch (e) {
             // If stored user data is corrupted, continue with server validation
@@ -123,29 +118,29 @@ export const useAuthStore = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('token-init-date', new Date().getTime().toString());
         localStorage.setItem('user', JSON.stringify(userData));
-        dispatch(onLogin(userData));
+        onLogin(userData);
       } else {
         localStorage.clear();
-        dispatch(onLogout());
+        onLogout();
       }
     } catch (error) {
       // Only logout if response indicates unauthorized, not on network errors
       const response = (error as any)?.response;
       if (response?.status === 401) {
         localStorage.clear();
-        dispatch(onLogout());
+        onLogout();
       }
       // For network errors, keep the user logged in with existing token
     }
-  };
+  }, [onLogin, onLogout]);
 
-  const startLogout = () => {
+  const startLogout = useCallback(() => {
     if (typeof window !== 'undefined') {
       localStorage.clear();
     }
-    dispatch(onLogoutCalendar());
-    dispatch(onLogout());
-  };
+    onLogoutCalendar();
+    onLogout();
+  }, [onLogoutCalendar, onLogout]);
 
   return {
     // Properties

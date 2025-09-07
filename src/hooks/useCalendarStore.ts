@@ -1,22 +1,15 @@
 import { useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from './useAppDispatch';
 import { Event } from '@/types';
-import {
-  onAddNewEvent,
-  onDeleteEvent,
-  onSetActiveEvent,
-  onUpdateEvent,
-  onLoadEvents,
-} from '@/store';
+import { useCalendarStore as useCalendarStoreZustand } from '@/stores/useCalendarStore';
+import { useAuthStore as useAuthStoreZustand } from '@/stores/useAuthStore';
 import Swal from 'sweetalert2';
 
 export const useCalendarStore = () => {
-  const dispatch = useAppDispatch();
-  const { events, activeEvent } = useAppSelector((state) => state.calendar);
-  const { user } = useAppSelector((state) => state.auth);
+  const { events, activeEvent, onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onLoadEvents } = useCalendarStoreZustand();
+  const { user } = useAuthStoreZustand();
 
   const setActiveEvent = (calendarEvent: Event) => {
-    dispatch(onSetActiveEvent(calendarEvent));
+    onSetActiveEvent(calendarEvent);
   };
 
   const startSavingEvent = async (calendarEvent: Event) => {
@@ -38,7 +31,7 @@ export const useCalendarStore = () => {
         const data = await response.json();
 
         if (data.ok) {
-          dispatch(onUpdateEvent({ ...calendarEvent, user: user || undefined }));
+          onUpdateEvent({ ...calendarEvent, user: user || undefined });
         } else {
           throw new Error(data.msg || 'Error al actualizar evento');
         }
@@ -53,7 +46,7 @@ export const useCalendarStore = () => {
         const data = await response.json();
 
         if (data.ok) {
-          dispatch(onAddNewEvent({ ...calendarEvent, id: data.evento.id, user: user || undefined }));
+          onAddNewEvent({ ...calendarEvent, id: data.evento.id, user: user || undefined });
         } else {
           throw new Error(data.msg || 'Error al crear evento');
         }
@@ -79,7 +72,7 @@ export const useCalendarStore = () => {
       const data = await response.json();
 
       if (data.ok) {
-        dispatch(onDeleteEvent());
+        onDeleteEvent();
       } else {
         throw new Error(data.msg || 'Error al eliminar evento');
       }
@@ -108,13 +101,13 @@ export const useCalendarStore = () => {
           start: new Date(event.start),
           end: new Date(event.end),
         }));
-        dispatch(onLoadEvents(events));
+        onLoadEvents(events);
       }
     } catch (error) {
       console.log('Error cargando eventos');
       console.log('ERROR:', error);
     }
-  }, [dispatch]);
+  }, [onLoadEvents]);
 
   return {
     // Properties

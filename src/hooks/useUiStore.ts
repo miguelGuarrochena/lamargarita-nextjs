@@ -1,16 +1,14 @@
-import { useAppDispatch, useAppSelector } from './useAppDispatch';
-import { onOpenDateModal, onCloseDateModal } from '@/store';
+import { useUiStore as useUiStoreZustand } from '@/stores/useUiStore';
 
 export const useUiStore = () => {
-  const { isDateModalOpen } = useAppSelector((state) => state.ui);
-  const dispatch = useAppDispatch();
+  const { isDateModalOpen, onOpenDateModal, onCloseDateModal } = useUiStoreZustand();
 
   const openDateModal = () => {
-    dispatch(onOpenDateModal());
+    onOpenDateModal();
   };
 
   const closeDateModal = () => {
-    dispatch(onCloseDateModal());
+    onCloseDateModal();
   };
 
   return {
