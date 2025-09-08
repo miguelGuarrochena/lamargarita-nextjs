@@ -180,13 +180,13 @@ body {
   font-weight: 500;
 }
 
-.rbc-event:focus {
-  outline: 2px solid #007bff;
-  outline-offset: 2px;
-}
-
 .rbc-selected {
-  background-color: #007bff !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  border: 2px solid #6366f1 !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  transform: translateY(-1px) !important;
 }
 
 .rbc-today {
