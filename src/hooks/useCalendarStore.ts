@@ -6,11 +6,15 @@ import { ClientErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
 import Swal from 'sweetalert2';
 
 export const useCalendarStore = () => {
-  const { events, activeEvent, onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onLoadEvents } = useCalendarStoreZustand();
+  const { events, activeEvent, isLoadingEvents, onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onLoadEvents, onSetLoadingEvents } = useCalendarStoreZustand();
   const { user } = useAuthStoreZustand();
 
   const setActiveEvent = (calendarEvent: Event | null) => {
     onSetActiveEvent(calendarEvent);
+  };
+
+  const setLoadingEvents = (loading: boolean) => {
+    onSetLoadingEvents(loading);
   };
 
   const startSavingEvent = async (calendarEvent: Event) => {
@@ -260,6 +264,7 @@ export const useCalendarStore = () => {
   };
 
   const startLoadingEvents = useCallback(async () => {
+    setLoadingEvents(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -354,6 +359,8 @@ export const useCalendarStore = () => {
         ClientErrorHandler.logError(error, 'startLoadingEvents - Unexpected Error');
         Swal.fire('Error inesperado', ERROR_MESSAGES.USER.EVENT_LOAD_FAILED, 'error');
       }
+    } finally {
+      setLoadingEvents(false);
     }
   }, [onLoadEvents]);
 
@@ -364,6 +371,7 @@ export const useCalendarStore = () => {
     // Properties
     activeEvent,
     events,
+    isLoadingEvents,
     hasEventSelected: !!activeEvent && 
                      !!activeEvent.id && 
                      typeof activeEvent.id === 'string' && 
@@ -374,6 +382,7 @@ export const useCalendarStore = () => {
     // Methods
     startDeletingEvent,
     setActiveEvent,
+    setLoadingEvents,
     startSavingEvent,
     startLoadingEvents,
   };

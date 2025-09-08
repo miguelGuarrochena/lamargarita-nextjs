@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { AppShell, Loader, Center } from '@mantine/core';
+import { AppShell, Loader, Center, Overlay, Text } from '@mantine/core';
 import { Calendar as BigCalendar } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { localizer, getMessagesES } from '@/lib/helpers';
@@ -27,6 +27,7 @@ export default function CalendarPage() {
   const [lastView, setLastView] = useState<string>('month');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -117,11 +118,20 @@ export default function CalendarPage() {
     setActiveEvent(null);
   }, [setActiveEvent]);
 
+  const loadEventsWithLoading = useCallback(async () => {
+    setIsLoadingEvents(true);
+    try {
+      await startLoadingEvents();
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [startLoadingEvents]);
+
   useEffect(() => {
     if (status === 'authenticated') {
-      startLoadingEvents();
+      loadEventsWithLoading();
     }
-  }, [status, startLoadingEvents]);
+  }, [status, loadEventsWithLoading]);
 
   if (status === 'checking') {
     return (
@@ -170,7 +180,31 @@ export default function CalendarPage() {
             onNavigate={onNavigate}
           />
         )}
-
+        {isLoadingEvents && (
+          <Overlay
+            opacity={0.8}
+            color="#fff"
+            blur={3}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            }}
+          >
+            <Center>
+              <div style={{ textAlign: 'center' }}>
+                <Loader size="xl" />
+              </div>
+            </Center>
+          </Overlay>
+        )}
         <CalendarModal />
         <FabAddNew />
         <FabDelete />
