@@ -130,9 +130,9 @@ export const useCalendarStore = () => {
 
       if (data.ok) {
         if (calendarEvent.id) {
-          onUpdateEvent({ ...calendarEvent, user: user || undefined });
+          onUpdateEvent({ ...calendarEvent, user: user ? { _id: user.uid, name: user.name } : undefined });
         } else {
-          onAddNewEvent({ ...calendarEvent, id: data.evento.id || data.evento._id, user: user || undefined });
+          onAddNewEvent({ ...calendarEvent, id: data.evento.id || data.evento._id, user: user ? { _id: user.uid, name: user.name } : undefined });
         }
       } else {
         const { userMessage, technicalMessage } = ClientErrorHandler.parseApiError(
@@ -357,6 +357,9 @@ export const useCalendarStore = () => {
     }
   }, [onLoadEvents]);
 
+  console.log('AAA', activeEvent)
+  console.log('BBB', user)
+
   return {
     // Properties
     activeEvent,
@@ -366,7 +369,7 @@ export const useCalendarStore = () => {
                      typeof activeEvent.id === 'string' && 
                      activeEvent.id.trim() !== '' && 
                      activeEvent.id !== 'undefined' && 
-                     (!activeEvent.user || activeEvent.user.uid === user?.uid),
+                     (!activeEvent.user || activeEvent.user._id === user?.uid),
 
     // Methods
     startDeletingEvent,

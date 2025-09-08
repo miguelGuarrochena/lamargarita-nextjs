@@ -4,6 +4,11 @@ export interface User {
   email: string;
 }
 
+export interface EventUser {
+  _id: string;
+  name: string;
+}
+
 export interface CalendarEvent {
   id?: string;
   title: string;
@@ -12,7 +17,7 @@ export interface CalendarEvent {
   pax?: number;
   start: Date;
   end: Date;
-  user?: User;
+  user?: EventUser;
 }
 
 // Alias for backward compatibility

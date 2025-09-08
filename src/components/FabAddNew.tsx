@@ -11,7 +11,8 @@ export const FabAddNew = () => {
   const { user } = useAuthStore();
 
   // Check if we're in edit mode (user has selected their own event)
-  const isEditMode = activeEvent && activeEvent.id && (!activeEvent.user || activeEvent.user.uid === user?.uid);
+  // Fixed: Use _id from EventUser instead of uid
+  const isEditMode = activeEvent && activeEvent.id && (!activeEvent.user || activeEvent.user._id === user?.uid);
 
   const handleClick = () => {
     if (isEditMode) {
