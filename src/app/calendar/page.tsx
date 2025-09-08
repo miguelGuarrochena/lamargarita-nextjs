@@ -16,7 +16,7 @@ import {
   FabDelete,
 } from '@/components';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
-import { CalendarEvent } from '@/types';
+import { BookingType, CalendarEvent } from '@/types';
 
 export default function CalendarPage() {
   const { openDateModal } = useUiStore();
@@ -91,18 +91,47 @@ export default function CalendarPage() {
     openDateModal();
   }, [user, setActiveEvent, openDateModal]);
 
-  const onSelectSlot = useCallback((event: { start: Date; end: Date }) => {
-    setActiveEvent(null);
-  }, [setActiveEvent]);
+
+
+  const onSelectSlot = useCallback(
+    (slotInfo: { start: Date; end: Date }) => {
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); 
+  
+      const slotDate = new Date(slotInfo.start);
+      slotDate.setHours(0, 0, 0, 0); 
+  
+      if (slotDate < today) return;
+  
+ 
+      if (activeEvent) {
+        setActiveEvent(null);
+        return;
+      }
+  
+      
+      const newEvent: Partial<CalendarEvent> = {
+        start: slotInfo.start,
+        end: slotInfo.end,
+        title: '',
+        booking: 'CT' as BookingType,
+        notes: '',
+      };
+  
+      setActiveEvent(newEvent as CalendarEvent);
+      openDateModal();
+    },
+    [activeEvent, setActiveEvent, openDateModal]
+  );
+  
 
   const onSelectEvent = useCallback((event: CalendarEvent) => {
     setActiveEvent(event);
   }, [setActiveEvent]);
 
   const onSelecting = useCallback((slotInfo: any) => {
-    // Only clear selection when clicking truly empty calendar space
-    // Don't interfere with event selection process
-    return true; // Allow default selection behavior
+    return true; 
   }, []);
 
   const onViewChanged = useCallback((event: string) => {
