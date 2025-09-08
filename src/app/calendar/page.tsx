@@ -21,7 +21,7 @@ import { CalendarEvent } from '@/types';
 export default function CalendarPage() {
   const { openDateModal } = useUiStore();
   const { events, setActiveEvent, startLoadingEvents, activeEvent } = useCalendarStore();
-  const { status, checkAuthToken } = useAuthStore();
+  const { status, checkAuthToken, user } = useAuthStore();
   const router = useRouter();
 
   const [lastView, setLastView] = useState<string>('month');
@@ -78,9 +78,17 @@ export default function CalendarPage() {
     };
   }, []);
 
-  const onDoubleClick = useCallback((event: object) => {
+  const onDoubleClick = useCallback((event: CalendarEvent) => {
+    // Validate ownership before opening modal - same logic as hasEventSelected
+    if (!user || !event.user || event.user._id !== user.uid) {
+      // Event doesn't belong to current user, don't open modal
+      return;
+    }
+    
+    // Set the active event before opening modal
+    setActiveEvent(event);
     openDateModal();
-  }, [openDateModal]);
+  }, [user, setActiveEvent, openDateModal]);
 
   const onSelectSlot = useCallback((event: { start: Date; end: Date }) => {
     setActiveEvent(null);
