@@ -121,7 +121,7 @@ export async function PUT(
     const startDate = new Date(eventData.start);
     const endDate = new Date(eventData.end);
     
-    if (endDate <= startDate) {
+    if (endDate < startDate) {
       const errorResponse = ApiErrorHandler.handleValidationError(
         'dates',
         { start: eventData.start, end: eventData.end },

@@ -9,7 +9,7 @@ export const useCalendarStore = () => {
   const { events, activeEvent, onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onLoadEvents } = useCalendarStoreZustand();
   const { user } = useAuthStoreZustand();
 
-  const setActiveEvent = (calendarEvent: Event) => {
+  const setActiveEvent = (calendarEvent: Event | null) => {
     onSetActiveEvent(calendarEvent);
   };
 
@@ -38,11 +38,24 @@ export const useCalendarStore = () => {
         return;
       }
 
-      // Validate date range
+      // Validate date range - allow same-day bookings
       const startDate = new Date(calendarEvent.start);
       const endDate = new Date(calendarEvent.end);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
       
-      if (endDate <= startDate) {
+      // Check if start date is in the past
+      if (startDate < today) {
+        ClientErrorHandler.logError(
+          new Error('Start date cannot be in the past'),
+          'startSavingEvent - Validation',
+          { calendarEvent, startDate, today }
+        );
+        Swal.fire('Error de validación', 'La fecha de entrada no puede ser anterior a hoy', 'error');
+        return;
+      }
+      
+      if (endDate < startDate) {
         ClientErrorHandler.logError(
           new Error('Invalid date range'),
           'startSavingEvent - Validation',
@@ -348,7 +361,7 @@ export const useCalendarStore = () => {
     // Properties
     activeEvent,
     events,
-    hasEventSelected: !!activeEvent,
+    hasEventSelected: !!activeEvent && (!activeEvent.user || activeEvent.user.uid === user?.uid),
 
     // Methods
     startDeletingEvent,

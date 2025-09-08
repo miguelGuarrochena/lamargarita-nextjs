@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     const startDate = new Date(start);
     const endDate = new Date(end);
     
-    if (endDate <= startDate) {
+    if (endDate < startDate) {
       const errorResponse = ApiErrorHandler.handleValidationError(
         'dates',
         { start, end },

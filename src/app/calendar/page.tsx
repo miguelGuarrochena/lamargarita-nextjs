@@ -31,7 +31,7 @@ export default function CalendarPage() {
   useEffect(() => {
     setIsClient(true);
     checkAuthToken();
-  }, []); // Remove checkAuthToken dependency to prevent infinite loop
+  }, [checkAuthToken]); // Add checkAuthToken dependency
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -83,18 +83,18 @@ export default function CalendarPage() {
   }, [openDateModal]);
 
   const onSelectSlot = useCallback((event: { start: Date; end: Date }) => {
-    const newEvent: Partial<CalendarEvent> = {
-      start: event.start,
-      end: event.end,
-      title: '',
-      booking: 'CT'
-    };
-    setActiveEvent(newEvent as CalendarEvent);
+    setActiveEvent(null);
   }, [setActiveEvent]);
 
   const onSelectEvent = useCallback((event: CalendarEvent) => {
     setActiveEvent(event);
   }, [setActiveEvent]);
+
+  const onSelecting = useCallback((slotInfo: any) => {
+    // Only clear selection when clicking truly empty calendar space
+    // Don't interfere with event selection process
+    return true; // Allow default selection behavior
+  }, []);
 
   const onViewChanged = useCallback((event: string) => {
     if (isClient && typeof window !== 'undefined') {
@@ -105,7 +105,9 @@ export default function CalendarPage() {
 
   const onNavigate = useCallback((newDate: Date) => {
     setCurrentDate(newDate);
-  }, []);
+    // Clear active event when navigating to prevent stale selections
+    setActiveEvent(null);
+  }, [setActiveEvent]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -155,6 +157,7 @@ export default function CalendarPage() {
             onDoubleClickEvent={onDoubleClick}
             onSelectSlot={onSelectSlot}
             onSelectEvent={onSelectEvent}
+            onSelecting={onSelecting}
             onView={onViewChanged}
             onNavigate={onNavigate}
           />

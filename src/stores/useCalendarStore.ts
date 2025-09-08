@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { CalendarState, Event } from '@/types';
 
 interface CalendarStore extends CalendarState {
-  onSetActiveEvent: (event: Event) => void;
+  onSetActiveEvent: (event: Event | null) => void;
   onAddNewEvent: (event: Event) => void;
   onUpdateEvent: (event: Event) => void;
   onDeleteEvent: () => void;
@@ -16,7 +16,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   activeEvent: null,
 
   // Actions
-  onSetActiveEvent: (event: Event) => set({
+  onSetActiveEvent: (event: Event | null) => set({
     activeEvent: event,
   }),
 

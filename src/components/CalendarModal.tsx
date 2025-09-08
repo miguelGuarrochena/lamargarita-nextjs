@@ -77,6 +77,7 @@ export const CalendarModal = () => {
 
   const onCloseModal = () => {
     closeDateModal();
+    setFormSubmitted(false);
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -132,6 +133,7 @@ export const CalendarModal = () => {
               className="mantine-datepicker"
               locale="es"
               dateFormat="dd/MM/yyyy"
+              minDate={new Date()}
               required
             />
           </div>
@@ -223,9 +225,17 @@ export const CalendarModal = () => {
 
           <Group justify="flex-end" mt="md">
             <Button
+              variant="outline"
+              onClick={onCloseModal}
+              leftSection={<IconX size={16} />}
+            >
+              Cancelar
+            </Button>
+            <Button
               type="submit"
               leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
               color="blue"
+              disabled={formSubmitted && formValues.title.length === 0}
             >
               {activeEvent?.id ? 'Modificar' : 'Guardar'}
             </Button>
