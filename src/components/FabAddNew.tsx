@@ -3,6 +3,7 @@
 import { useCalendarStore, useUiStore, useAuthStore } from '@/hooks';
 import { ActionIcon } from '@mantine/core';
 import { IconPlus, IconEdit } from '@tabler/icons-react';
+import { BookingType } from '@/types';
 
 export const FabAddNew = () => {
   const { openDateModal } = useUiStore();
@@ -23,7 +24,7 @@ export const FabAddNew = () => {
         notes: '',
         start: new Date(),
         end: new Date(),
-        booking: 'CT',
+        booking: 'CT' as BookingType,
         pax: 1,
       };
       setActiveEvent(newEvent);

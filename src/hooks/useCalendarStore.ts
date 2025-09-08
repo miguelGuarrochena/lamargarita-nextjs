@@ -361,7 +361,12 @@ export const useCalendarStore = () => {
     // Properties
     activeEvent,
     events,
-    hasEventSelected: !!activeEvent && (!activeEvent.user || activeEvent.user.uid === user?.uid),
+    hasEventSelected: !!activeEvent && 
+                     !!activeEvent.id && 
+                     typeof activeEvent.id === 'string' && 
+                     activeEvent.id.trim() !== '' && 
+                     activeEvent.id !== 'undefined' && 
+                     (!activeEvent.user || activeEvent.user.uid === user?.uid),
 
     // Methods
     startDeletingEvent,
