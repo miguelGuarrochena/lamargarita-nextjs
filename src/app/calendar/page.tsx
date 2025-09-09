@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { AppShell, Loader, Center, Overlay, Text } from '@mantine/core';
@@ -16,18 +16,25 @@ import {
   FabDelete,
 } from '@/components';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
+import { useSpecialEvents } from '@/hooks/useSpecialEvents';
 import { BookingType, CalendarEvent } from '@/types';
 
 export default function CalendarPage() {
   const { openDateModal } = useUiStore();
   const { events, setActiveEvent, startLoadingEvents, activeEvent } = useCalendarStore();
   const { status, checkAuthToken, user } = useAuthStore();
+  const specialEvents = useSpecialEvents();
   const router = useRouter();
 
   const [lastView, setLastView] = useState<string>('month');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+
+  // Merge regular events with special events
+  const allEvents = useMemo(() => {
+    return [...events, ...specialEvents];
+  }, [events, specialEvents]);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,7 +56,22 @@ export default function CalendarPage() {
     }
   }, [status, router]);
 
-  const eventStyleGetter = useCallback((event: CalendarEvent) => {
+  const eventStyleGetter = useCallback((event: CalendarEvent & { color?: string }) => {
+    // If event has a color field (special events), use it
+    if (event.color) {
+      return {
+        style: {
+          backgroundColor: event.color,
+          borderRadius: '0 10px 10px 0',
+          opacity: 0.8,
+          display: 'block',
+          color: event.booking === 'VC' ? '#fff' : '#000', // White text for vacations, black for holidays
+          fontWeight: 'bold',
+        },
+      };
+    }
+
+    // Default styling for regular events
     const style = {
       backgroundColor:
         'CT' === event.booking
@@ -186,7 +208,7 @@ export default function CalendarPage() {
           <BigCalendar
             culture="es"
             localizer={localizer}
-            events={events}
+            events={allEvents}
             view={lastView as any}
             date={currentDate}
             startAccessor="start"
