@@ -171,8 +171,8 @@ export default function RegisterPage() {
           <form onSubmit={registerSubmit}>
             <Stack>
               <TextInput
-                label="Nombre completo"
-                placeholder="Tu nombre completo"
+                label="Nombre"
+                placeholder="Tu nombre o alias"
                 name="registerName"
                 value={registerName}
                 onChange={handleInputChange}
@@ -232,9 +232,9 @@ export default function RegisterPage() {
           </form>
 
           <Text c="dimmed" size="sm" ta="center" mt={30}>
-            ¿Ya tienes cuenta?{' '}
+            ¿Ya tenés cuenta?{' '}
             <Anchor component={Link} href="/login" size="sm">
-              Inicia sesión aquí
+              Inicia sesión acá
             </Anchor>
           </Text>
         </Paper>

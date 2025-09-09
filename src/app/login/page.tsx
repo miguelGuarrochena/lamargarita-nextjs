@@ -170,9 +170,9 @@ export default function LoginPage() {
           </form>
 
           <Text c="dimmed" size="sm" ta="center" mt={30}>
-            ¿No tienes cuenta?{' '}
+            ¿No tenés cuenta?{' '}
             <Anchor component={Link} href="/register" size="sm">
-              Regístrate aquí
+              Registrate acá
             </Anchor>
           </Text>
         </Paper>
