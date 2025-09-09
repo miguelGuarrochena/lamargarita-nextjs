@@ -165,7 +165,7 @@ export default function RegisterPage() {
             Crear Cuenta
           </Title>
           <Text c="dimmed" size="sm" ta="center" mb={30}>
-            Únete a La Margarita Reservas
+            Unite a La Margarita Reservas
           </Text>
 
           <form onSubmit={registerSubmit}>
