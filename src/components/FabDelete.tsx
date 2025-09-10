@@ -1,19 +1,21 @@
 'use client';
 
-import { useCalendarStore } from '@/hooks';
+import { useCalendarStore, useUiStore } from '@/hooks';
 import { ActionIcon } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 
 export const FabDelete = () => {
   const { startDeletingEvent, hasEventSelected } = useCalendarStore();
+  const { isDateModalOpen } = useUiStore();
+
+  // Hide FAB when modal is open or when no event is selected to prevent overlap
+  if (!hasEventSelected || isDateModalOpen) {
+    return null;
+  }
 
   const handleDelete = () => {
     startDeletingEvent();
   };
-
-  if (!hasEventSelected) {
-    return null;
-  }
 
   return (
     <ActionIcon

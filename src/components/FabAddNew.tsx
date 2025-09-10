@@ -6,9 +6,12 @@ import { IconPlus, IconEdit } from '@tabler/icons-react';
 import { BookingType } from '@/types';
 
 export const FabAddNew = () => {
-  const { openDateModal } = useUiStore();
+  const { openDateModal, isDateModalOpen } = useUiStore();
   const { setActiveEvent, activeEvent } = useCalendarStore();
   const { user } = useAuthStore();
+
+  // Hide FAB when modal is open to prevent overlap with modal buttons
+  if (isDateModalOpen) return null;
 
   // Check if we're in edit mode (user has selected their own event)
   // Fixed: Use _id from EventUser instead of uid
