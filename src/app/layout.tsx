@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { MantineProvider, ColorSchemeScript } from '@mantine/core';
 import '@mantine/core/styles.css';
+import SWRegister from '@/components/SWRegister'; 
 
 export const metadata: Metadata = {
   title: "La Margarita - Reservas",
   description: "Sistema de reservas para La Margarita",
+  manifest: '/manifest.json', 
+  themeColor: '#0ea5e9', 
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    apple: '/apple-touch-icon.png', 
   },
 };
 
@@ -22,6 +25,9 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning={true}>
       <head>
         <ColorSchemeScript />
+ {/* PWA */}
+ <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
       </head>
       <body suppressHydrationWarning={true}>
         <MantineProvider
@@ -45,6 +51,7 @@ export default function RootLayout({
           }}
           defaultColorScheme="light"
         >
+          <SWRegister /> 
           {children}
           <div id="root-portal" />
         </MantineProvider>
