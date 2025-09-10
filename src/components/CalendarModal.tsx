@@ -134,6 +134,8 @@ export const CalendarModal = () => {
               locale="es"
               dateFormat="dd/MM/yyyy"
               minDate={new Date()}
+              portalId="root-portal"
+              popperPlacement="bottom-start"
               required
             />
           </div>
@@ -147,6 +149,8 @@ export const CalendarModal = () => {
               className="mantine-datepicker"
               dateFormat="dd/MM/yyyy"
               locale="es"
+              portalId="root-portal"
+              popperPlacement="bottom-start"
               required
             />
           </div>

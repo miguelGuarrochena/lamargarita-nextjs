@@ -126,6 +126,35 @@ body {
   background-color: #f8f9fa;
 }
 
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker {
+  z-index: 9999 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #ced4da !important;
+  border-radius: 8px !important;
+ 
+}
+
+/* Asegurar que el wrapper del DatePicker también tenga z-index alto */
+.react-datepicker-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix específico para modales de Mantine */
+.mantine-Modal-root {
+  z-index: 1000;
+}
+
+.mantine-Modal-inner {
+  z-index: 1001;
+}
+
+
 /* DatePicker styling for Mantine integration */
 .mantine-datepicker {
   width: 100%;

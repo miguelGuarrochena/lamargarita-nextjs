@@ -46,6 +46,7 @@ export default function RootLayout({
           defaultColorScheme="light"
         >
           {children}
+          <div id="root-portal" />
         </MantineProvider>
       </body>
     </html>
