@@ -25,9 +25,9 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning={true}>
       <head>
         <ColorSchemeScript />
- {/* PWA */}
- <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0ea5e9" />
+        {/* PWA */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0ea5e9" />
       </head>
       <body suppressHydrationWarning={true}>
         <MantineProvider
