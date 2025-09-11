@@ -147,13 +147,33 @@ body {
 
 /* Fix específico para modales de Mantine */
 .mantine-Modal-root {
-  z-index: 1000;
+  z-index: 2000 !important; /* Increased z-index for mobile modal fixes */
 }
 
 .mantine-Modal-inner {
-  z-index: 1001;
+  z-index: 2001 !important; /* Increased z-index for mobile modal fixes */
 }
 
+.mantine-Modal-content {
+  z-index: 2002 !important; /* Ensure modal content is above overlay */
+  max-height: 90vh !important; /* Prevent modal from being too tall on mobile */
+  overflow-y: auto !important; /* Enable scrolling within modal on mobile */
+}
+
+/* Mobile-specific modal fixes */
+@media (max-width: 768px) {
+  .mantine-Modal-content {
+    margin: 10px !important;
+    max-height: 95vh !important;
+    width: calc(100vw - 20px) !important;
+  }
+  
+  .mantine-Modal-body {
+    padding: 15px !important;
+    max-height: calc(95vh - 60px) !important;
+    overflow-y: auto !important;
+  }
+}
 
 /* DatePicker styling for Mantine integration */
 .mantine-datepicker {
@@ -278,8 +298,3 @@ body {
     justify-content: center;
   }
 }
-
-
-
-
-

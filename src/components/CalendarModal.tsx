@@ -122,6 +122,17 @@ export const CalendarModal = () => {
       }
       size="md"
       centered
+      zIndex={2000}
+      overlayProps={{
+        backgroundOpacity: 0.55,
+        blur: 3,
+      }}
+      scrollAreaComponent={undefined}
+      withCloseButton={true}
+      closeOnClickOutside={true}
+      closeOnEscape={true}
+      trapFocus={true}
+      lockScroll={true}
     >
       <form onSubmit={onSubmit}>
         <Stack gap="md">

@@ -48,7 +48,7 @@ export const FabAddNew = () => {
         position: 'fixed',
         bottom: 25,
         right: 25,
-        zIndex: 1000,
+        zIndex: 150, // Reduced z-index to stay below modal
       }}
     >
       {isEditMode ? <IconEdit size={30} /> : <IconPlus size={30} />}

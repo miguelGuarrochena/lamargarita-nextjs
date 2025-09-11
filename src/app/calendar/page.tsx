@@ -132,10 +132,16 @@ export default function CalendarPage() {
         return;
       }
   
+      // Fix date range bug: Ensure end date is inclusive for multi-day selections
+      const adjustedEndDate = new Date(slotInfo.end);
+      // If end date is different from start date (multi-day selection), subtract 1 day to make it inclusive
+      if (slotInfo.end.getTime() !== slotInfo.start.getTime()) {
+        adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
+      }
       
       const newEvent: Partial<CalendarEvent> = {
         start: slotInfo.start,
-        end: slotInfo.end,
+        end: adjustedEndDate,
         title: '',
         booking: 'CT' as BookingType,
         notes: '',
