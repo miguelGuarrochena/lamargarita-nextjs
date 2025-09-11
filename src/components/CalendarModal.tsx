@@ -148,7 +148,6 @@ export const CalendarModal = () => {
               portalId="root-portal"
               popperPlacement="bottom-start"
               required
-              readOnly={true}
             />
           </div>
 
@@ -164,7 +163,6 @@ export const CalendarModal = () => {
               portalId="root-portal"
               popperPlacement="bottom-start"
               required
-              readOnly={true}
             />
           </div>
 
@@ -183,12 +181,21 @@ export const CalendarModal = () => {
               name="booking"
               value={formValues.booking}
               onChange={(value) => setFormValues({ ...formValues, booking: value || '' })}
-              data={selectData.map(item => ({
-                ...item,
-                color: item.value ? bookingColors[item.value] : undefined
-              }))}
+              data={selectData}
               required
               placeholder="Seleccionar una opción"
+              searchable={false}
+              clearable={false}
+              allowDeselect={false}
+              comboboxProps={{
+                zIndex: 2100,
+                withinPortal: true,
+                position: 'bottom-start',
+                middlewares: {
+                  flip: true,
+                  shift: true,
+                },
+              }}
               leftSection={
                 selectedBookingColor ? (
                   <Box

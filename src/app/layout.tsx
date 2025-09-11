@@ -28,6 +28,7 @@ export default function RootLayout({
         {/* PWA */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0ea5e9" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body suppressHydrationWarning={true}>
         <MantineProvider
