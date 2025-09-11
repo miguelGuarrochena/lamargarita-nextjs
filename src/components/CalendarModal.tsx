@@ -148,6 +148,7 @@ export const CalendarModal = () => {
               portalId="root-portal"
               popperPlacement="bottom-start"
               required
+              readOnly={true}
             />
           </div>
 
@@ -163,6 +164,7 @@ export const CalendarModal = () => {
               portalId="root-portal"
               popperPlacement="bottom-start"
               required
+              readOnly={true}
             />
           </div>
 
