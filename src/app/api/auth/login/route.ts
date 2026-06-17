@@ -3,11 +3,21 @@ import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { generateJWT } from '@/lib/jwt';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    
+
+    // Limita intentos de login por IP para mitigar fuerza bruta.
+    const limit = rateLimit(`login:${getClientIp(request)}`, { limit: 5, windowMs: 60_000 });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { ok: false, msg: 'Demasiados intentos. Esperá un momento e intentá de nuevo.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } }
+      );
+    }
+
     const { email, password } = await request.json();
 
     if (!email || !password) {
@@ -17,31 +27,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Searching for user with email:', email);
-    console.log('Collection name:', User.collection.name);
-    
-    // Try to find user and log the result
     const user = await User.findOne({ email });
-    console.log('User found:', user ? 'YES' : 'NO');
-    
-    // Also try to list all users to debug
-    const allUsers = await User.find({}).limit(5);
 
-   
-
-    if (!user) {
+    // Mensaje genérico para no revelar si el email existe (evita enumeración de usuarios).
+    if (!user || !bcrypt.compareSync(password, user.password)) {
       return NextResponse.json(
-        { ok: false, msg: 'El usuario no existe con ese email' },
-        { status: 400 }
-      );
-    }
-
-    // Verify password
-    const validPassword = bcrypt.compareSync(password, user.password);
-
-    if (!validPassword) {
-      return NextResponse.json(
-        { ok: false, msg: 'Password incorrecto' },
+        { ok: false, msg: 'Email o contraseña incorrectos' },
         { status: 400 }
       );
     }

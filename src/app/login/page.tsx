@@ -169,7 +169,13 @@ export default function LoginPage() {
             </Stack>
           </form>
 
-          <Text c="dimmed" size="sm" ta="center" mt={30}>
+          <Text c="dimmed" size="sm" ta="center" mt="md">
+            <Anchor component={Link} href="/forgot-password" size="sm">
+              ¿Olvidaste tu contraseña?
+            </Anchor>
+          </Text>
+
+          <Text c="dimmed" size="sm" ta="center" mt="xs">
             ¿No tenés cuenta?{' '}
             <Anchor component={Link} href="/register" size="sm">
               Registrate acá

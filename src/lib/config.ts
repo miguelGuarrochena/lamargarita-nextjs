@@ -1,9 +1,19 @@
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? fallback;
+  if (!value) {
+    // Falla rápido y claro en vez de arrancar con un secreto inseguro.
+    throw new Error(`Falta la variable de entorno requerida: ${name}`);
+  }
+  return value;
+};
+
 export const getEnvVariables = () => {
   return {
-    MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/lamargarita',
-    JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key-here',
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'your-nextauth-secret',
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    // Sin fallback: si falta, no debe arrancar (evita secretos hardcodeados).
+    MONGODB_URI: requireEnv('MONGODB_URI'),
+    JWT_SECRET: requireEnv('JWT_SECRET'),
+    NEXTAUTH_SECRET: requireEnv('NEXTAUTH_SECRET', process.env.JWT_SECRET),
+    NEXTAUTH_URL: requireEnv('NEXTAUTH_URL', 'http://localhost:3000'),
   }
 }
 
