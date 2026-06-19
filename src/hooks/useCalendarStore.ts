@@ -3,11 +3,11 @@ import { Event } from '@/types';
 import { useCalendarStore as useCalendarStoreZustand } from '@/stores/useCalendarStore';
 import { useAuthStore as useAuthStoreZustand } from '@/stores/useAuthStore';
 import { ClientErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
-import { isOwnEvent } from '@/lib/eventOwnership';
+import { canManageEvent, isSystemAdminEvent, isValidMongoId } from '@/lib/eventOwnership';
 import Swal from 'sweetalert2';
 
 export const useCalendarStore = () => {
-  const { events, activeEvent, isLoadingEvents, onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onLoadEvents, onSetLoadingEvents } = useCalendarStoreZustand();
+  const { events, activeEvent, isLoadingEvents, onSetActiveEvent, onAddNewEvent, onUpdateEvent, onDeleteEvent, onHideSpecialEvent, onLoadEvents, onSetLoadingEvents } = useCalendarStoreZustand();
   const { user } = useAuthStoreZustand();
 
   const setActiveEvent = (calendarEvent: Event | null) => {
@@ -49,8 +49,9 @@ export const useCalendarStore = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
       
-      // Check if start date is in the past
-      if (startDate < today) {
+      // Check if start date is in the past (feriados/vacaciones admin pueden editarse igual)
+      const isAdminSystemEvent = isSystemAdminEvent(calendarEvent) && user?.name === 'Miguel';
+      if (!isAdminSystemEvent && startDate < today) {
         ClientErrorHandler.logError(
           new Error('Start date cannot be in the past'),
           'startSavingEvent - Validation',
@@ -88,9 +89,11 @@ export const useCalendarStore = () => {
 
       let response: Response;
       let operation: string;
+      const previousSpecialId =
+        calendarEvent.id && !isValidMongoId(calendarEvent.id) ? calendarEvent.id : undefined;
+      const isUpdate = !!calendarEvent.id && isValidMongoId(calendarEvent.id);
 
-      if (calendarEvent.id) {
-        // Updating
+      if (isUpdate) {
         operation = 'update event';
         response = await fetch(`/api/events/${calendarEvent.id}`, {
           method: 'PUT',
@@ -98,12 +101,12 @@ export const useCalendarStore = () => {
           body: JSON.stringify(calendarEvent),
         });
       } else {
-        // Creating
         operation = 'create event';
+        const { id: _omitId, ...payload } = calendarEvent;
         response = await fetch('/api/events', {
           method: 'POST',
           headers,
-          body: JSON.stringify(calendarEvent),
+          body: JSON.stringify(payload),
         });
       }
 
@@ -134,10 +137,17 @@ export const useCalendarStore = () => {
       const data = await response.json();
 
       if (data.ok) {
-        if (calendarEvent.id) {
+        if (isUpdate) {
           onUpdateEvent({ ...calendarEvent, user: user ? { _id: user.uid, name: user.name } : undefined });
         } else {
-          onAddNewEvent({ ...calendarEvent, id: data.evento.id || data.evento._id, user: user ? { _id: user.uid, name: user.name } : undefined });
+          onAddNewEvent({
+            ...calendarEvent,
+            id: data.evento.id || data.evento._id,
+            user: user ? { _id: user.uid, name: user.name } : undefined,
+          });
+        }
+        if (previousSpecialId && isSystemAdminEvent(calendarEvent)) {
+          onHideSpecialEvent(previousSpecialId);
         }
       } else {
         const { userMessage, technicalMessage } = ClientErrorHandler.parseApiError(
@@ -176,6 +186,23 @@ export const useCalendarStore = () => {
         { activeEvent }
       );
       Swal.fire('Error', 'No hay evento seleccionado para eliminar', 'error');
+      return;
+    }
+
+    // Feriados/vacaciones del calendario (cliente) no están en la API
+    if (!isValidMongoId(activeEvent.id)) {
+      if (isSystemAdminEvent(activeEvent)) {
+        onHideSpecialEvent(activeEvent.id!);
+        onSetActiveEvent(null);
+        return;
+      }
+
+      ClientErrorHandler.logError(
+        new Error('Invalid event ID for deletion'),
+        'startDeletingEvent - Validation',
+        { activeEvent }
+      );
+      Swal.fire('Error de validación', 'No se puede eliminar este evento', 'error');
       return;
     }
 
@@ -342,6 +369,12 @@ export const useCalendarStore = () => {
           .map((event: any) => ({
             ...event,
             id: event._id || event.id,
+            user: event.user
+              ? {
+                  _id: event.user._id || event.user.id,
+                  name: event.user.name,
+                }
+              : undefined,
             start: new Date(event.start),
             end: new Date(event.end),
           }));
@@ -385,7 +418,7 @@ export const useCalendarStore = () => {
                      typeof activeEvent.id === 'string' &&
                      activeEvent.id.trim() !== '' &&
                      activeEvent.id !== 'undefined' &&
-                     isOwnEvent(activeEvent, user),
+                     canManageEvent(activeEvent, user),
 
     // Methods
     startDeletingEvent,

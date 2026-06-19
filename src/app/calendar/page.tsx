@@ -7,8 +7,10 @@ import { AppShell, Loader, Center, Box, Overlay } from '@mantine/core';
 
 import { Navbar } from '@/components/Navbar';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
+import { useUiStore as useUiStoreZustand } from '@/stores/useUiStore';
+import { useCalendarStore as useCalendarStoreZustand } from '@/stores/useCalendarStore';
 import { useSpecialEvents } from '@/hooks/useSpecialEvents';
-import { isOwnEvent } from '@/lib/eventOwnership';
+import { canManageEvent } from '@/lib/eventOwnership';
 import { BookingType, CalendarEvent } from '@/types';
 import type { CalendarViewProps } from '@/components/CalendarView';
 
@@ -98,18 +100,20 @@ export default function CalendarPage() {
     };
   }, []);
 
-  const onSelectEvent = useCallback(
+  const openEventEditor = useCallback(
     (event: CalendarEvent) => {
-      if (!isOwnEvent(event, user)) {
-        setActiveEvent(null);
+      if (!canManageEvent(event, user)) {
+        useCalendarStoreZustand.getState().onSetActiveEvent(null);
         return;
       }
 
-      setActiveEvent(event);
-      openDateModal();
+      useCalendarStoreZustand.getState().onSetActiveEvent(event);
+      useUiStoreZustand.getState().onOpenDateModal();
     },
-    [user, setActiveEvent, openDateModal]
+    [user]
   );
+
+  const onSelectEvent = openEventEditor;
   const onSelectSlot = useCallback(
     (slotInfo: { start: Date; end: Date }) => {
       const today = new Date();
@@ -182,7 +186,7 @@ export default function CalendarPage() {
     view: lastView,
     date: currentDate,
     selected: activeEvent,
-    onDoubleClickEvent: onSelectEvent,
+    onDoubleClickEvent: openEventEditor,
     onSelectSlot,
     onSelectEvent,
     onView: onViewChanged,

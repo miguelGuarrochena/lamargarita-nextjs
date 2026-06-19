@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     
     const decoded = await validateJWT(request);
     
-    const events = await Event.find().populate('user', 'name uid');
+    const events = await Event.find().populate('user', 'name');
 
     return NextResponse.json({
       ok: true,

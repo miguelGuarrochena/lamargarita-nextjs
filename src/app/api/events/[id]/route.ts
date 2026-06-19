@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Event from '@/lib/models/Event';
 import '@/lib/models/User'; // Ensure User schema is registered
 import { validateJWT } from '@/lib/middleware';
+import { canManageEventOnServer } from '@/lib/eventOwnership';
 import { ApiErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
 
 // Simple date validation function for server-side use
@@ -165,7 +166,7 @@ export async function PUT(
       );
     }
 
-    if (event.user.toString() !== decoded.uid) {
+    if (!canManageEventOnServer(event, decoded)) {
       const errorResponse = ApiErrorHandler.handleAuthorizationError(
         'Event',
         'update',
@@ -323,7 +324,7 @@ export async function DELETE(
       );
     }
 
-    if (event.user.toString() !== decoded.uid) {
+    if (!canManageEventOnServer(event, decoded)) {
       const errorResponse = ApiErrorHandler.handleAuthorizationError(
         'Event',
         'delete',

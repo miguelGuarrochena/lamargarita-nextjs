@@ -12,7 +12,7 @@ import { specialEvents2026 } from '@/lib/specialDates2026';
 import { Event, BookingType } from '@/types';
 import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash } from '@tabler/icons-react';
 import { confirmDeleteReservation } from '@/hooks/useCalendarActionButtons';
-import { isOwnEvent } from '@/lib/eventOwnership';
+import { canManageEvent } from '@/lib/eventOwnership';
 import { scheduleUiLockRelease } from '@/lib/releaseUiLocks';
 
 const toDayValue = (d: Date) => {
@@ -95,9 +95,7 @@ export const CalendarModal = () => {
   const onCloseModal = () => {
     closeDateModal();
     setFormSubmitted(false);
-    if (!activeEvent?.id) {
-      setActiveEvent(null);
-    }
+    setActiveEvent(null);
   };
 
   const closeEditModalOnly = () => {
@@ -105,7 +103,7 @@ export const CalendarModal = () => {
     setFormSubmitted(false);
   };
 
-  const canDelete = !!activeEvent?.id && isOwnEvent(activeEvent, user);
+  const canDelete = !!activeEvent?.id && canManageEvent(activeEvent, user);
 
   const onDelete = async () => {
     closeEditModalOnly();
