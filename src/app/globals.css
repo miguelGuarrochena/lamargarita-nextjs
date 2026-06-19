@@ -585,22 +585,6 @@ body {
   padding-bottom: 4px;
 }
 
-.lm-bottom-nav__create--holdable {
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.lm-bottom-nav__create--holding .lm-bottom-nav__create-icon {
-  transform: scale(0.92);
-  box-shadow: 0 4px 12px rgba(26, 157, 122, 0.35);
-}
-
-.lm-bottom-nav__create--danger .lm-bottom-nav__create-icon {
-  background: linear-gradient(145deg, #fa5252, #e03131);
-  box-shadow: 0 6px 18px rgba(224, 49, 49, 0.45);
-}
-
 /* ===== Booking type colors (functional, kept) ===== */
 .total { background-color: #e74c3c; }
 .parcial { background-color: #edc308; }
