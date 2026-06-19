@@ -548,6 +548,30 @@ body {
   border-radius: 50%;
 }
 
+.lm-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.lm-modal-form__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.lm-modal-form__footer {
+  flex-shrink: 0;
+  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  border-top: 1px solid var(--lm-border);
+  background: var(--lm-surface);
+  box-shadow: 0 -4px 16px rgba(36, 50, 48, 0.06);
+}
+
 .lm-danger-zone {
   padding-top: 4px;
   background: linear-gradient(180deg, transparent, rgba(224, 49, 49, 0.04));
@@ -559,6 +583,12 @@ body {
   min-height: min-content;
 }
 
+/* Modal fullscreen en mobile: scroll interno + footer fijo */
+.mantine-Modal-content:has(.lm-modal-form--mobile) {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
+
 .lm-modal-actions {
   padding-bottom: 4px;
 }
@@ -567,6 +597,11 @@ body {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.lm-bottom-nav__create--holding .lm-bottom-nav__create-icon {
+  transform: scale(0.92);
+  box-shadow: 0 4px 12px rgba(26, 157, 122, 0.35);
 }
 
 .lm-bottom-nav__create--danger .lm-bottom-nav__create-icon {

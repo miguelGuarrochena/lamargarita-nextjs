@@ -63,12 +63,9 @@ export const CalendarActionControls = ({ variant }: CalendarActionControlsProps)
 
   return (
     <UnstyledButton
-      className={`lm-bottom-nav__create${showDelete ? ' lm-bottom-nav__create--danger' : ''}${isEditMode && !showDelete ? ' lm-bottom-nav__create--holdable' : ''}`}
+      className={`lm-bottom-nav__create${showDelete ? ' lm-bottom-nav__create--danger' : ''}${isEditMode && !showDelete ? ' lm-bottom-nav__create--holdable' : ''}${holding ? ' lm-bottom-nav__create--holding' : ''}`}
       onClick={handlePrimaryClick}
-      onTouchStart={(e) => {
-        if (isEditMode) e.preventDefault();
-        onPressStart();
-      }}
+      onTouchStart={() => onPressStart()}
       onTouchEnd={onPressEnd}
       onTouchCancel={onPressEnd}
       onPointerDown={(e) => {

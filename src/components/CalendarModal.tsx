@@ -174,20 +174,27 @@ export const CalendarModal = () => {
       onExitTransitionEnd={scheduleUiLockRelease}
       styles={{
         content: {
-          maxHeight: isMobile ? '100dvh' : '90dvh',
           display: 'flex',
           flexDirection: 'column',
+          height: isMobile ? '100dvh' : undefined,
+          maxHeight: isMobile ? '100dvh' : '90dvh',
         },
         body: {
           padding: 0,
-          overflowY: 'auto',
           flex: 1,
           minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         },
       }}
     >
-      <form onSubmit={onSubmit}>
-        <Stack gap="md" p="md" pb="calc(env(safe-area-inset-bottom, 0px) + 2rem)" className="lm-modal-scroll">
+      <form
+        onSubmit={onSubmit}
+        className={isMobile ? 'lm-modal-form lm-modal-form--mobile' : 'lm-modal-form'}
+      >
+        <Box className="lm-modal-form__scroll">
+          <Stack gap="md" p="md">
           <div>
             <Text size="sm" fw={500} mb={5}>Fecha de entrada</Text>
             <DatePicker
@@ -317,7 +324,7 @@ export const CalendarModal = () => {
             rows={4}
           />
 
-          {canDelete && (
+          {canDelete && !isMobile && (
             <Box className="lm-danger-zone">
               <Divider mb="md" />
               <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={6} style={{ letterSpacing: '0.06em' }}>
@@ -339,26 +346,65 @@ export const CalendarModal = () => {
             </Box>
           )}
 
-          <Stack gap="sm" mt="md" className="lm-modal-actions">
-            <Button
-              type="submit"
-              fullWidth
-              leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-              disabled={formSubmitted && formValues.title.length === 0}
-            >
-              {activeEvent?.id ? 'Modificar' : 'Guardar'}
-            </Button>
-            <Button
-              fullWidth
-              variant="outline"
-              type="button"
-              onClick={onCloseModal}
-              leftSection={<IconX size={16} />}
-            >
-              Cancelar
-            </Button>
+          {!isMobile && (
+            <Stack gap="sm" mt="md" className="lm-modal-actions">
+              <Button
+                type="submit"
+                fullWidth
+                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+                disabled={formSubmitted && formValues.title.length === 0}
+              >
+                {activeEvent?.id ? 'Modificar' : 'Guardar'}
+              </Button>
+              <Button
+                fullWidth
+                variant="outline"
+                type="button"
+                onClick={onCloseModal}
+                leftSection={<IconX size={16} />}
+              >
+                Cancelar
+              </Button>
+            </Stack>
+          )}
           </Stack>
-        </Stack>
+        </Box>
+
+        {isMobile && (
+          <Box className="lm-modal-form__footer">
+            <Stack gap="sm">
+              {canDelete && (
+                <Button
+                  type="button"
+                  fullWidth
+                  color="red"
+                  variant="light"
+                  leftSection={<IconTrash size={16} />}
+                  onClick={onDelete}
+                >
+                  Eliminar reserva
+                </Button>
+              )}
+              <Button
+                type="submit"
+                fullWidth
+                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+                disabled={formSubmitted && formValues.title.length === 0}
+              >
+                {activeEvent?.id ? 'Modificar' : 'Guardar'}
+              </Button>
+              <Button
+                fullWidth
+                variant="outline"
+                type="button"
+                onClick={onCloseModal}
+                leftSection={<IconX size={16} />}
+              >
+                Cancelar
+              </Button>
+            </Stack>
+          </Box>
+        )}
       </form>
     </Modal>
   );
