@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Swal from 'sweetalert2';
 import { useAuthStore } from '@/hooks';
 import { Navbar } from '@/components';
@@ -27,6 +28,8 @@ import {
   Center,
   Loader,
   Divider,
+  Modal,
+  Box,
 } from '@mantine/core';
 import {
   IconBed,
@@ -56,6 +59,8 @@ export default function ChecklistPage() {
 
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
+  const [showThanks, setShowThanks] = useState(false);
+  const wasCompleteRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     checkAuthToken();
@@ -103,6 +108,21 @@ export default function ChecklistPage() {
   const remaining = totalChecklistItems - checkedCount;
   const complete = remaining === 0;
 
+  useEffect(() => {
+    if (!loaded) return;
+
+    if (wasCompleteRef.current === null) {
+      wasCompleteRef.current = complete;
+      return;
+    }
+
+    if (complete && !wasCompleteRef.current) {
+      setShowThanks(true);
+    }
+
+    wasCompleteRef.current = complete;
+  }, [complete, loaded]);
+
   const resetAll = useCallback(() => {
     Swal.fire({
       title: '¿Reiniciar el checklist?',
@@ -134,7 +154,7 @@ export default function ChecklistPage() {
       <AppShell.Main className="lm-shell-main">
         <Container size="md" py={{ base: 32, sm: 48 }}>
           <Title order={2} fw={700} ta="center" mb={6}>
-            Checklist de Check-out
+            To Do List en el Check-out
           </Title>
           <Text ta="center" c="dimmed" size="sm" mb="xl">
             Antes de irte, repasá que todo quede en orden.
@@ -244,6 +264,53 @@ export default function ChecklistPage() {
             Gracias por colaborar — La Margarita
           </Text>
         </Container>
+
+        <Modal
+          opened={showThanks}
+          onClose={() => setShowThanks(false)}
+          centered
+          radius="lg"
+          padding={0}
+          size="md"
+          title={null}
+          withCloseButton
+          overlayProps={{ opacity: 0.55, blur: 3 }}
+          styles={{
+            content: { overflow: 'hidden' },
+            close: { zIndex: 2 },
+          }}
+        >
+          <Box
+            pos="relative"
+            w="100%"
+            style={{
+              aspectRatio: '3 / 4',
+              maxHeight: 'min(72vh, 520px)',
+            }}
+          >
+            <Image
+              src="/images/pardo.jpeg"
+              alt="Pardo en La Margarita"
+              fill
+              sizes="(max-width: 768px) 90vw, 440px"
+              priority
+              style={{ objectFit: 'cover', objectPosition: 'center 35%' }}
+            />
+          </Box>
+          <Stack align="center" gap="xs" p="lg" pt="md">
+            <Text
+              className="lm-script-fancy"
+              ta="center"
+              c="brand.7"
+              style={{ fontSize: '1.75rem', lineHeight: 1.2 }}
+            >
+              ¡Gracias por tu visita!
+            </Text>
+            <Button mt="sm" onClick={() => setShowThanks(false)}>
+              Cerrar
+            </Button>
+          </Stack>
+        </Modal>
       </AppShell.Main>
     </AppShell>
   );

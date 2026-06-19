@@ -27,7 +27,7 @@ export const AuthCard = ({ title, subtitle, children, footer }: AuthCardProps) =
       <Box style={{ width: '100%', maxWidth: 400 }}>
         <Group justify="center" mb="xl">
           <Anchor component={Link} href="/login" underline="never">
-            <BrandLockup logoSize={42} variant="auth" />
+            <BrandLockup logoSize={42} prominent />
           </Anchor>
         </Group>
 
