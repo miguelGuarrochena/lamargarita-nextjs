@@ -54,6 +54,10 @@ export function useCalendarActionButtons() {
     if (!isEditMode) setShowDelete(false);
   }, [isEditMode]);
 
+  useEffect(() => {
+    if (isDateModalOpen) setShowDelete(false);
+  }, [isDateModalOpen]);
+
   const clearPressTimer = useCallback(() => {
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
@@ -76,6 +80,7 @@ export function useCalendarActionButtons() {
   }, [isEditMode, isDateModalOpen]);
 
   const onPressEnd = useCallback(() => {
+    if (skipNextClick.current) return;
     clearPressTimer();
   }, [clearPressTimer]);
 

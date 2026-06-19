@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useMediaQuery } from '@mantine/hooks';
 import { AppShell, Loader, Center, Box, Overlay } from '@mantine/core';
 
 import { Navbar } from '@/components/Navbar';
@@ -32,7 +31,6 @@ export default function CalendarPage() {
   const specialEvents = useSpecialEvents();
   const router = useRouter();
   const hadCachedEvents = useRef(events.length > 0);
-  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const [lastView, setLastView] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -104,9 +102,8 @@ export default function CalendarPage() {
     (event: CalendarEvent) => {
       if (!isOwnEvent(event, user)) return;
       setActiveEvent(event);
-      openDateModal();
     },
-    [user, setActiveEvent, openDateModal]
+    [user, setActiveEvent]
   );
 
   const onSelectSlot = useCallback(
@@ -158,11 +155,8 @@ export default function CalendarPage() {
       }
 
       setActiveEvent(event);
-      if (isMobile) {
-        openDateModal();
-      }
     },
-    [user, isMobile, setActiveEvent, openDateModal]
+    [user, setActiveEvent]
   );
 
   const onViewChanged = useCallback((view: string) => {

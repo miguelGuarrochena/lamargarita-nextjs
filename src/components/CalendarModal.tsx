@@ -149,6 +149,28 @@ export const CalendarModal = () => {
   // Get selected booking color for display
   const selectedBookingColor = formValues.booking ? bookingColors[formValues.booking] : null;
 
+  const dangerZone = canDelete ? (
+    <Box className="lm-danger-zone" mt="md">
+      <Divider mb="md" />
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={6} style={{ letterSpacing: '0.06em' }}>
+        Zona de peligro
+      </Text>
+      <Text size="sm" c="dimmed" mb="sm">
+        Esta acción elimina la reserva de forma permanente.
+      </Text>
+      <Button
+        type="button"
+        fullWidth
+        color="red"
+        variant="light"
+        leftSection={<IconTrash size={16} />}
+        onClick={onDelete}
+      >
+        Eliminar reserva
+      </Button>
+    </Box>
+  ) : null;
+
   return (
     <Modal
       opened={isDateModalOpen}
@@ -324,28 +346,6 @@ export const CalendarModal = () => {
             rows={4}
           />
 
-          {canDelete && !isMobile && (
-            <Box className="lm-danger-zone">
-              <Divider mb="md" />
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={6} style={{ letterSpacing: '0.06em' }}>
-                Zona de peligro
-              </Text>
-              <Text size="sm" c="dimmed" mb="sm">
-                Esta acción elimina la reserva de forma permanente.
-              </Text>
-              <Button
-                type="button"
-                fullWidth
-                color="red"
-                variant="light"
-                leftSection={<IconTrash size={16} />}
-                onClick={onDelete}
-              >
-                Eliminar reserva
-              </Button>
-            </Box>
-          )}
-
           {!isMobile && (
             <Stack gap="sm" mt="md" className="lm-modal-actions">
               <Button
@@ -367,24 +367,13 @@ export const CalendarModal = () => {
               </Button>
             </Stack>
           )}
+          {!isMobile && dangerZone}
           </Stack>
         </Box>
 
         {isMobile && (
           <Box className="lm-modal-form__footer">
             <Stack gap="sm">
-              {canDelete && (
-                <Button
-                  type="button"
-                  fullWidth
-                  color="red"
-                  variant="light"
-                  leftSection={<IconTrash size={16} />}
-                  onClick={onDelete}
-                >
-                  Eliminar reserva
-                </Button>
-              )}
               <Button
                 type="submit"
                 fullWidth
@@ -402,6 +391,7 @@ export const CalendarModal = () => {
               >
                 Cancelar
               </Button>
+              {dangerZone}
             </Stack>
           </Box>
         )}
