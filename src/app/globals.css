@@ -563,45 +563,15 @@ body {
   padding-bottom: 4px;
 }
 
+.lm-bottom-nav__create--holdable {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .lm-bottom-nav__create--danger .lm-bottom-nav__create-icon {
   background: linear-gradient(145deg, #fa5252, #e03131);
   box-shadow: 0 6px 18px rgba(224, 49, 49, 0.45);
-}
-
-/* ===== Floating action buttons (desktop) ===== */
-.fab {
-  border-radius: 100%;
-  bottom: 28px;
-  font-size: 30px;
-  padding: 25px;
-  position: fixed;
-  right: 28px;
-  z-index: 300;
-  box-shadow: 0 8px 24px rgba(31, 157, 131, 0.35) !important;
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-
-@media (max-width: 767px) {
-  .fab,
-  .fab-danger {
-    display: none !important;
-  }
-}
-
-.fab:hover {
-  transform: translateY(-2px);
-}
-
-.fab-danger {
-  border-radius: 100%;
-  bottom: 25px;
-  font-size: 22px;
-  position: fixed;
-  left: 25px;
-  width: 70px;
-  height: 70px;
-  z-index: 210;
-  box-shadow: 0 8px 24px rgba(225, 67, 67, 0.3) !important;
 }
 
 /* ===== Booking type colors (functional, kept) ===== */

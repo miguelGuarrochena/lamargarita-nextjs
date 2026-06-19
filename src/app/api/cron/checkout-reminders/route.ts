@@ -39,9 +39,15 @@ function buildReminderEmail(name: string, checklistUrl: string) {
 }
 
 export async function GET(request: NextRequest) {
-  // Seguridad: Vercel Cron envía Authorization: Bearer <CRON_SECRET> si está definido.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
+  if (!cronSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { ok: false, msg: 'CRON_SECRET no configurado' },
+        { status: 503 }
+      );
+    }
+  } else {
     const auth = request.headers.get('authorization');
     if (auth !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ ok: false, msg: 'No autorizado' }, { status: 401 });

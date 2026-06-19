@@ -3,11 +3,13 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useMediaQuery } from '@mantine/hooks';
 import { AppShell, Loader, Center, Box, Overlay } from '@mantine/core';
 
 import { Navbar } from '@/components/Navbar';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
 import { useSpecialEvents } from '@/hooks/useSpecialEvents';
+import { isOwnEvent } from '@/lib/eventOwnership';
 import { BookingType, CalendarEvent } from '@/types';
 import type { CalendarViewProps } from '@/components/CalendarView';
 
@@ -30,6 +32,7 @@ export default function CalendarPage() {
   const specialEvents = useSpecialEvents();
   const router = useRouter();
   const hadCachedEvents = useRef(events.length > 0);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const [lastView, setLastView] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -99,7 +102,7 @@ export default function CalendarPage() {
 
   const onDoubleClick = useCallback(
     (event: CalendarEvent) => {
-      if (!user || !event.user || event.user._id !== user.uid) return;
+      if (!isOwnEvent(event, user)) return;
       setActiveEvent(event);
       openDateModal();
     },
@@ -149,18 +152,17 @@ export default function CalendarPage() {
 
   const onSelectEvent = useCallback(
     (event: CalendarEvent) => {
-      const isOwn =
-        !!user && !!event.user && event.user._id === user.uid;
-
-      if (!isOwn) {
+      if (!isOwnEvent(event, user)) {
         setActiveEvent(null);
         return;
       }
 
       setActiveEvent(event);
-      openDateModal();
+      if (isMobile) {
+        openDateModal();
+      }
     },
-    [user, setActiveEvent, openDateModal]
+    [user, isMobile, setActiveEvent, openDateModal]
   );
 
   const onViewChanged = useCallback((view: string) => {

@@ -12,6 +12,7 @@ import { specialEvents2026 } from '@/lib/specialDates2026';
 import { Event, BookingType } from '@/types';
 import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash } from '@tabler/icons-react';
 import { confirmDeleteReservation } from '@/hooks/useCalendarActionButtons';
+import { isOwnEvent } from '@/lib/eventOwnership';
 import { scheduleUiLockRelease } from '@/lib/releaseUiLocks';
 
 const toDayValue = (d: Date) => {
@@ -51,12 +52,6 @@ export const CalendarModal = () => {
     pax: '',
   });
 
-  const titleClass = useMemo(() => {
-    if (!formSubmitted) return '';
-    return formValues.title.length > 0 ? '' : 'is-invalid';
-  }, [formValues.title, formSubmitted]);
-
-  // Detecta si el rango de la reserva cae en feriados o fechas especiales.
   const overlappingSpecials = useMemo(() => {
     const s = toDayValue(formValues.start);
     const e = toDayValue(formValues.end);
@@ -100,7 +95,9 @@ export const CalendarModal = () => {
   const onCloseModal = () => {
     closeDateModal();
     setFormSubmitted(false);
-    setActiveEvent(null);
+    if (!activeEvent?.id) {
+      setActiveEvent(null);
+    }
   };
 
   const closeEditModalOnly = () => {
@@ -108,9 +105,7 @@ export const CalendarModal = () => {
     setFormSubmitted(false);
   };
 
-  const canDelete =
-    !!activeEvent?.id &&
-    (!activeEvent.user || activeEvent.user._id === user?.uid);
+  const canDelete = !!activeEvent?.id && isOwnEvent(activeEvent, user);
 
   const onDelete = async () => {
     closeEditModalOnly();
@@ -192,7 +187,7 @@ export const CalendarModal = () => {
       }}
     >
       <form onSubmit={onSubmit}>
-        <Stack gap="md" p="md" pb="xl" className="lm-modal-scroll">
+        <Stack gap="md" p="md" pb="calc(env(safe-area-inset-bottom, 0px) + 2rem)" className="lm-modal-scroll">
           <div>
             <Text size="sm" fw={500} mb={5}>Fecha de entrada</Text>
             <DatePicker
@@ -322,28 +317,8 @@ export const CalendarModal = () => {
             rows={4}
           />
 
-          <Stack gap="sm" mt="md" className="lm-modal-actions">
-            <Button
-              type="submit"
-              fullWidth
-              leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-              disabled={formSubmitted && formValues.title.length === 0}
-            >
-              {activeEvent?.id ? 'Modificar' : 'Guardar'}
-            </Button>
-            <Button
-              fullWidth
-              variant="outline"
-              type="button"
-              onClick={onCloseModal}
-              leftSection={<IconX size={16} />}
-            >
-              Cancelar
-            </Button>
-          </Stack>
-
           {canDelete && (
-            <Box className="lm-danger-zone" mt="lg">
+            <Box className="lm-danger-zone">
               <Divider mb="md" />
               <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={6} style={{ letterSpacing: '0.06em' }}>
                 Zona de peligro
@@ -363,6 +338,26 @@ export const CalendarModal = () => {
               </Button>
             </Box>
           )}
+
+          <Stack gap="sm" mt="md" className="lm-modal-actions">
+            <Button
+              type="submit"
+              fullWidth
+              leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+              disabled={formSubmitted && formValues.title.length === 0}
+            >
+              {activeEvent?.id ? 'Modificar' : 'Guardar'}
+            </Button>
+            <Button
+              fullWidth
+              variant="outline"
+              type="button"
+              onClick={onCloseModal}
+              leftSection={<IconX size={16} />}
+            >
+              Cancelar
+            </Button>
+          </Stack>
         </Stack>
       </form>
     </Modal>

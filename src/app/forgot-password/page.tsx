@@ -33,12 +33,17 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      await fetch('/api/auth/forgot-password', {
+      const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      setSent(true);
+      const data = await response.json();
+      if (response.ok && data.ok) {
+        setSent(true);
+      } else {
+        setError(data.msg || 'No se pudo enviar el enlace. Intentá de nuevo.');
+      }
     } catch {
       setError('Error de conexión. Intentá de nuevo.');
     } finally {

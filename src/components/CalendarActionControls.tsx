@@ -54,14 +54,31 @@ export const CalendarActionControls = ({ variant }: CalendarActionControlsProps)
     );
   }
 
+  const holdHint =
+    holding && isEditMode && !showDelete
+      ? 'Soltá para cancelar'
+      : isEditMode && !showDelete
+        ? '3s p/ eliminar'
+        : primaryLabel;
+
   return (
     <UnstyledButton
-      className={`lm-bottom-nav__create${showDelete ? ' lm-bottom-nav__create--danger' : ''}`}
+      className={`lm-bottom-nav__create${showDelete ? ' lm-bottom-nav__create--danger' : ''}${isEditMode && !showDelete ? ' lm-bottom-nav__create--holdable' : ''}`}
       onClick={handlePrimaryClick}
-      onPointerDown={onPressStart}
-      onPointerUp={onPressEnd}
-      onPointerLeave={onPressEnd}
-      onPointerCancel={onPressEnd}
+      onTouchStart={(e) => {
+        if (isEditMode) e.preventDefault();
+        onPressStart();
+      }}
+      onTouchEnd={onPressEnd}
+      onTouchCancel={onPressEnd}
+      onPointerDown={(e) => {
+        if (e.pointerType === 'touch') return;
+        onPressStart();
+      }}
+      onPointerUp={(e) => {
+        if (e.pointerType === 'touch') return;
+        onPressEnd();
+      }}
       onContextMenu={(e) => e.preventDefault()}
       aria-label={primaryLabel}
     >
@@ -69,7 +86,7 @@ export const CalendarActionControls = ({ variant }: CalendarActionControlsProps)
         {icon}
       </Box>
       <Text size="10px" fw={700} mt={2} c={showDelete ? 'red.7' : undefined}>
-        {holding && isEditMode && !showDelete ? '...' : primaryLabel}
+        {holdHint}
       </Text>
     </UnstyledButton>
   );

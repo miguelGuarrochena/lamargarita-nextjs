@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { useAuthStore } from '@/hooks';
 import { AuthCard } from '@/components';
 import {
   PasswordInput,
@@ -15,6 +16,7 @@ import {
 
 function ResetPasswordForm() {
   const router = useRouter();
+  const { checkAuthToken } = useAuthStore();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
 
@@ -63,6 +65,7 @@ function ResetPasswordForm() {
             JSON.stringify({ name: data.name, uid: data.uid, email: data.email })
           );
         }
+        await checkAuthToken();
         await Swal.fire('¡Listo!', 'Tu contraseña fue actualizada.', 'success');
         router.push('/');
       } else {

@@ -21,11 +21,13 @@ export const useAuthStore = () => {
       const data = await response.json();
 
       if (data.ok) {
+        const userData = { name: data.name, uid: data.uid, email };
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', data.token);
           localStorage.setItem('token-init-date', new Date().getTime().toString());
+          localStorage.setItem('user', JSON.stringify(userData));
         }
-        onLogin({ name: data.name, uid: data.uid, email });
+        onLogin(userData);
       } else {
         onLogout(data.msg || 'Credenciales incorrectas');
         setTimeout(() => {
@@ -54,11 +56,13 @@ export const useAuthStore = () => {
       const data = await response.json();
 
       if (data.ok) {
+        const userData = { name: data.name, uid: data.uid, email };
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', data.token);
           localStorage.setItem('token-init-date', new Date().getTime().toString());
+          localStorage.setItem('user', JSON.stringify(userData));
         }
-        onLogin({ name: data.name, uid: data.uid, email });
+        onLogin(userData);
       } else {
         onLogout(data.msg || 'Error al registrar usuario');
         setTimeout(() => {
@@ -124,13 +128,17 @@ export const useAuthStore = () => {
         onLogout();
       }
     } catch (error) {
-      // Only logout if response indicates unauthorized, not on network errors
-      const response = (error as any)?.response;
-      if (response?.status === 401) {
-        localStorage.clear();
-        onLogout();
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          onLogin(JSON.parse(storedUser));
+          return;
+        } catch {
+          // corrupted cache — fall through to logout
+        }
       }
-      // For network errors, keep the user logged in with existing token
+      localStorage.clear();
+      onLogout();
     }
   }, [onLogin, onLogout]);
 

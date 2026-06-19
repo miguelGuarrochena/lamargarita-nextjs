@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { useCalendarStore, useUiStore, useAuthStore } from '@/hooks';
 import { BookingType } from '@/types';
+import { isOwnEvent } from '@/lib/eventOwnership';
 
 export function useCalendarCreateAction() {
   const { openDateModal, isDateModalOpen } = useUiStore();
@@ -12,7 +13,7 @@ export function useCalendarCreateAction() {
   const isEditMode =
     !!activeEvent &&
     !!activeEvent.id &&
-    (!activeEvent.user || activeEvent.user._id === user?.uid);
+    isOwnEvent(activeEvent, user);
 
   const handleCreateOrEdit = useCallback(() => {
     if (isEditMode) {

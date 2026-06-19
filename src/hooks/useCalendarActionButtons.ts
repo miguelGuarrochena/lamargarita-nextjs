@@ -69,6 +69,9 @@ export function useCalendarActionButtons() {
       setShowDelete(true);
       setHolding(false);
       skipNextClick.current = true;
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
     }, LONG_PRESS_MS);
   }, [isEditMode, isDateModalOpen]);
 

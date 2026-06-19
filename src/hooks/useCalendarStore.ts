@@ -3,6 +3,7 @@ import { Event } from '@/types';
 import { useCalendarStore as useCalendarStoreZustand } from '@/stores/useCalendarStore';
 import { useAuthStore as useAuthStoreZustand } from '@/stores/useAuthStore';
 import { ClientErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
+import { isOwnEvent } from '@/lib/eventOwnership';
 import Swal from 'sweetalert2';
 
 export const useCalendarStore = () => {
@@ -379,12 +380,12 @@ export const useCalendarStore = () => {
     activeEvent,
     events,
     isLoadingEvents,
-    hasEventSelected: !!activeEvent && 
-                     !!activeEvent.id && 
-                     typeof activeEvent.id === 'string' && 
-                     activeEvent.id.trim() !== '' && 
-                     activeEvent.id !== 'undefined' && 
-                     (!activeEvent.user || activeEvent.user._id === user?.uid),
+    hasEventSelected: !!activeEvent &&
+                     !!activeEvent.id &&
+                     typeof activeEvent.id === 'string' &&
+                     activeEvent.id.trim() !== '' &&
+                     activeEvent.id !== 'undefined' &&
+                     isOwnEvent(activeEvent, user),
 
     // Methods
     startDeletingEvent,
