@@ -4,13 +4,18 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
-import { useAuthStore } from '@/hooks';
+import { useAuthStore, useCalendarStore } from '@/hooks';
 import { Navbar } from '@/components';
 import {
   checklistSections,
   checklistQuotes,
   totalChecklistItems,
 } from '@/lib/checklistData';
+import {
+  getRelevantCheckoutEnd,
+  parseChecklistStorage,
+  resolveChecklistState,
+} from '@/lib/checklistStorage';
 import {
   AppShell,
   Container,
@@ -55,10 +60,13 @@ const storageKey = (uid?: string) => `lm-checklist:${uid ?? 'anon'}`;
 
 export default function ChecklistPage() {
   const { status, user, checkAuthToken } = useAuthStore();
+  const { events, startLoadingEvents } = useCalendarStore();
   const router = useRouter();
 
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [linkedCheckoutEnd, setLinkedCheckoutEnd] = useState<string | undefined>();
   const [loaded, setLoaded] = useState(false);
+  const [eventsReady, setEventsReady] = useState(false);
   const [showThanks, setShowThanks] = useState(false);
   const wasCompleteRef = useRef<boolean | null>(null);
 
@@ -73,26 +81,46 @@ export default function ChecklistPage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (status === 'authenticated' && typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem(storageKey(user?.uid));
-        setChecked(raw ? JSON.parse(raw) : {});
-      } catch {
-        setChecked({});
-      }
-      setLoaded(true);
-    }
-  }, [status, user?.uid]);
+    if (status !== 'authenticated') return;
+    startLoadingEvents({ silent: true }).finally(() => setEventsReady(true));
+  }, [status, startLoadingEvents]);
 
   useEffect(() => {
-    if (loaded && typeof window !== 'undefined') {
-      localStorage.setItem(storageKey(user?.uid), JSON.stringify(checked));
-    }
-  }, [checked, loaded, user?.uid]);
+    if (status !== 'authenticated' || !eventsReady || !user?.uid) return;
 
-  const toggle = useCallback((id: string) => {
-    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
-  }, []);
+    const persisted = parseChecklistStorage(
+      localStorage.getItem(storageKey(user.uid))
+    );
+    const resolved = resolveChecklistState(persisted, events, user.uid);
+
+    setChecked(resolved.items);
+    setLinkedCheckoutEnd(resolved.linkedCheckoutEnd);
+    setLoaded(true);
+  }, [status, user?.uid, eventsReady, events]);
+
+  useEffect(() => {
+    if (!loaded || typeof window === 'undefined' || !user?.uid) return;
+
+    localStorage.setItem(
+      storageKey(user.uid),
+      JSON.stringify({ items: checked, linkedCheckoutEnd })
+    );
+  }, [checked, linkedCheckoutEnd, loaded, user?.uid]);
+
+  const toggle = useCallback(
+    (id: string) => {
+      setChecked((prev) => {
+        const next = { ...prev, [id]: !prev[id] };
+        return next;
+      });
+
+      if (user?.uid) {
+        const checkout = getRelevantCheckoutEnd(events, user.uid);
+        if (checkout) setLinkedCheckoutEnd(checkout);
+      }
+    },
+    [events, user?.uid]
+  );
 
   const checkedCount = useMemo(
     () =>
@@ -133,8 +161,17 @@ export default function ChecklistPage() {
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#1a9d7a',
     }).then((res) => {
-      if (res.isConfirmed) setChecked({});
+      if (res.isConfirmed) {
+        setChecked({});
+        wasCompleteRef.current = false;
+      }
     });
+  }, []);
+
+  const closeThanks = useCallback(() => {
+    setShowThanks(false);
+    setChecked({});
+    wasCompleteRef.current = false;
   }, []);
 
   if (status === 'checking' || !loaded) {
@@ -267,7 +304,7 @@ export default function ChecklistPage() {
 
         <Modal
           opened={showThanks}
-          onClose={() => setShowThanks(false)}
+          onClose={closeThanks}
           centered
           radius="lg"
           padding={0}
@@ -306,7 +343,7 @@ export default function ChecklistPage() {
             >
               ¡Gracias por tu visita!
             </Text>
-            <Button mt="sm" onClick={() => setShowThanks(false)}>
+            <Button mt="sm" onClick={closeThanks}>
               Cerrar
             </Button>
           </Stack>
