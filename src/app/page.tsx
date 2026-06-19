@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -41,21 +41,27 @@ import {
 function PhotoTextBlock({
   photo,
   reverse = false,
+  priority = false,
   children,
 }: {
   photo: { src: string; alt: string };
   reverse?: boolean;
+  priority?: boolean;
   children: React.ReactNode;
 }) {
+  const [ready, setReady] = useState(false);
+
   return (
     <Box className={`lm-photo-row${reverse ? ' lm-photo-row--reverse' : ''}`}>
-      <Box className="lm-photo-row__image">
+      <Box className={`lm-photo-row__image${ready ? ' lm-photo-row__image--ready' : ''}`}>
         <Image
           src={photo.src}
           alt={photo.alt}
           fill
+          priority={priority}
           sizes="(max-width: 768px) 100vw, 50vw"
           style={{ objectFit: 'cover' }}
+          onLoad={() => setReady(true)}
         />
       </Box>
       <Box className="lm-photo-row__content">{children}</Box>
@@ -170,7 +176,7 @@ export default function HomePage() {
           </Stack>
 
           <Stack gap={0} mb="xl">
-            <PhotoTextBlock photo={{ src: '/images/campo.jpeg', alt: 'El campo al atardecer' }}>
+            <PhotoTextBlock priority photo={{ src: '/images/campo.jpeg', alt: 'El campo al atardecer' }}>
               <SectionCard icon={<IconUsersGroup size={20} />} title="Espacios exclusivos para la familia">
                 <List spacing="sm" c="dark.5" size="sm">
                   <List.Item>
