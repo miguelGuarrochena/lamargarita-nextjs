@@ -1,6 +1,5 @@
-const CACHE_NAME = 'lamargarita-v1';
+const CACHE_NAME = 'lamargarita-v2';
 const urlsToCache = [
-  '/',
   '/favicon.svg',
   '/icon-192.png',
   '/icon-512.png',
@@ -8,42 +7,45 @@ const urlsToCache = [
   '/manifest.json'
 ];
 
-// Install event: Cache static assets
+// Install: cachear assets estáticos
 self.addEventListener('install', event => {
-  console.log('Service Worker installing.');
-  self.skipWaiting(); // Activate immediately
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Opened cache');
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)).catch(() => {})
   );
 });
 
-// Fetch event: Serve cached content when offline
+// Fetch: SOLO cachear GET de assets estáticos. Nunca interceptar
+// la API, el login, ni navegaciones (para no romper datos en vivo).
 self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Dejar pasar normalmente: métodos != GET, otra origin, API, y navegaciones HTML.
+  if (
+    request.method !== 'GET' ||
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith('/api/') ||
+    request.mode === 'navigate'
+  ) {
+    return; // el navegador maneja la request sin el service worker
+  }
+
+  // Para assets estáticos: cache-first con fallback a red (sin romper si falla).
   event.respondWith(
-    caches.match(event.request).then(response => {
-      // Return cached version or fetch from network
-      return response || fetch(event.request);
+    caches.match(request).then(cached => {
+      if (cached) return cached;
+      return fetch(request).catch(() => cached);
     })
   );
 });
 
-// Activate event: Clean up old caches
+// Activate: limpiar caches viejos y tomar control
 self.addEventListener('activate', event => {
-  console.log('Service Worker activating.');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then(names =>
+      Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
+    )
   );
-  self.clients.claim(); // Take control of all open clients
+  self.clients.claim();
 });

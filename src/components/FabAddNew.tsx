@@ -41,7 +41,7 @@ export const FabAddNew = () => {
       className="fab"
       size={70}
       radius="xl"
-      color={isEditMode ? "green" : "blue"}
+      color={isEditMode ? "green" : "brand"}
       variant="filled"
       onClick={handleClick}
       style={{

@@ -263,8 +263,10 @@ export const useCalendarStore = () => {
     }
   };
 
-  const startLoadingEvents = useCallback(async () => {
-    setLoadingEvents(true);
+  const startLoadingEvents = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoadingEvents(true);
+    }
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -302,10 +304,18 @@ export const useCalendarStore = () => {
           }
         );
 
-        // Only show error if it's not an authentication issue
-        if (response.status !== 401) {
-          Swal.fire('Error al cargar eventos', userMessage, 'error');
+        // Si el token ya no es válido (p. ej. tras rotar el JWT_SECRET o por
+        // expiración), limpiamos la sesión y mandamos al login en vez de
+        // dejar al usuario con el calendario vacío.
+        if (response.status === 401) {
+          if (typeof window !== 'undefined') {
+            localStorage.clear();
+            window.location.href = '/login';
+          }
+          return;
         }
+
+        Swal.fire('Error al cargar eventos', userMessage, 'error');
         return;
       }
 
@@ -363,9 +373,6 @@ export const useCalendarStore = () => {
       setLoadingEvents(false);
     }
   }, [onLoadEvents]);
-
-  console.log('AAA', activeEvent)
-  console.log('BBB', user)
 
   return {
     // Properties

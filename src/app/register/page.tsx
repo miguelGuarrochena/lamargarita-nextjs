@@ -5,17 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Swal from 'sweetalert2';
 import { useAuthStore, useForm } from '@/hooks';
-import { 
-  Container, 
-  Paper, 
-  TextInput, 
-  PasswordInput, 
-  Button, 
-  Title, 
-  Text, 
-  Anchor, 
+import { AuthCard } from '@/components';
+import {
+  TextInput,
+  PasswordInput,
+  Button,
+  Anchor,
   Stack,
-  Center
 } from '@mantine/core';
 
 const registerFormFields = {
@@ -40,8 +36,6 @@ const validateName = (name: string): boolean => {
 
 export default function RegisterPage() {
   const { startRegister, errorMessage, status, checkAuthToken } = useAuthStore();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -50,14 +44,6 @@ export default function RegisterPage() {
     confirmPassword?: string;
   }>({});
   const router = useRouter();
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
 
   const {
     registerEmail,
@@ -158,16 +144,18 @@ export default function RegisterPage() {
   }, [status, router]);
 
   return (
-    <Container size={420} my={40}>
-      <Center>
-        <Paper withBorder shadow="md" p={30} mt={30} radius="md" style={{ width: '100%' }}>
-          <Title ta="center" mb="xs">
-            Crear Cuenta
-          </Title>
-          <Text c="dimmed" size="sm" ta="center" mb={30}>
-            Unite a La Margarita Reservas
-          </Text>
-
+    <AuthCard
+      title="Crear cuenta"
+      subtitle="Unite a La Margarita Reservas"
+      footer={
+        <>
+          ¿Ya tenés cuenta?{' '}
+          <Anchor component={Link} href="/login" size="sm" fw={500}>
+            Iniciá sesión acá
+          </Anchor>
+        </>
+      }
+    >
           <form onSubmit={registerSubmit}>
             <Stack>
               <TextInput
@@ -219,10 +207,11 @@ export default function RegisterPage() {
                 autoComplete="new-password"
               />
 
-              <Button 
-                type="submit" 
-                fullWidth 
-                mt="xl"
+              <Button
+                type="submit"
+                fullWidth
+                mt="md"
+                size="md"
                 loading={isLoading}
                 disabled={isLoading}
               >
@@ -230,15 +219,6 @@ export default function RegisterPage() {
               </Button>
             </Stack>
           </form>
-
-          <Text c="dimmed" size="sm" ta="center" mt={30}>
-            ¿Ya tenés cuenta?{' '}
-            <Anchor component={Link} href="/login" size="sm">
-              Inicia sesión acá
-            </Anchor>
-          </Text>
-        </Paper>
-      </Center>
-    </Container>
+    </AuthCard>
   );
 }

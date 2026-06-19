@@ -4,16 +4,13 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { AuthCard } from '@/components';
 import {
-  Container,
-  Paper,
   PasswordInput,
   Button,
-  Title,
   Text,
   Anchor,
   Stack,
-  Center,
 } from '@mantine/core';
 
 function ResetPasswordForm() {
@@ -28,11 +25,11 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <Stack mt="md">
+      <Stack mt="md" align="center">
         <Text size="sm" ta="center" c="red">
           El enlace no es válido. Pedí uno nuevo desde la pantalla de recuperación.
         </Text>
-        <Anchor component={Link} href="/forgot-password" size="sm" ta="center">
+        <Anchor component={Link} href="/forgot-password" size="sm" fw={500}>
           Recuperar contraseña
         </Anchor>
       </Stack>
@@ -107,7 +104,7 @@ function ResetPasswordForm() {
           required
           autoComplete="new-password"
         />
-        <Button type="submit" fullWidth mt="xl" loading={isLoading} disabled={isLoading}>
+        <Button type="submit" fullWidth mt="md" size="md" loading={isLoading} disabled={isLoading}>
           Guardar nueva contraseña
         </Button>
       </Stack>
@@ -117,20 +114,10 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Container size={420} my={40}>
-      <Center>
-        <Paper withBorder shadow="md" p={30} mt={30} radius="md" style={{ width: '100%' }}>
-          <Title ta="center" mb="xs">
-            Nueva contraseña
-          </Title>
-          <Text c="dimmed" size="sm" ta="center" mb={30}>
-            Elegí una nueva contraseña para tu cuenta.
-          </Text>
-          <Suspense fallback={<Text size="sm" ta="center">Cargando...</Text>}>
-            <ResetPasswordForm />
-          </Suspense>
-        </Paper>
-      </Center>
-    </Container>
+    <AuthCard title="Nueva contraseña" subtitle="Elegí una nueva contraseña para tu cuenta">
+      <Suspense fallback={<Text size="sm" ta="center">Cargando...</Text>}>
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthCard>
   );
 }

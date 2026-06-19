@@ -1,14 +1,21 @@
 'use client';
 
 import { useMemo, useState, useEffect, forwardRef } from 'react';
-import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Badge, Box, Flex } from '@mantine/core';
+import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert } from '@mantine/core';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { es } from 'date-fns/locale';
 import { useAuthStore, useCalendarStore, useUiStore } from '@/hooks';
 import { reservas } from '@/lib/reservas';
+import { specialEvents2026 } from '@/lib/specialDates2026';
 import { Event, BookingType } from '@/types';
-import { IconDeviceFloppy, IconEdit, IconX } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconEdit, IconX, IconConfetti } from '@tabler/icons-react';
+
+const toDayValue = (d: Date) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x.getTime();
+};
 
 registerLocale('es', es);
 
@@ -44,6 +51,17 @@ export const CalendarModal = () => {
     if (!formSubmitted) return '';
     return formValues.title.length > 0 ? '' : 'is-invalid';
   }, [formValues.title, formSubmitted]);
+
+  // Detecta si el rango de la reserva cae en feriados o fechas especiales.
+  const overlappingSpecials = useMemo(() => {
+    const s = toDayValue(formValues.start);
+    const e = toDayValue(formValues.end);
+    return specialEvents2026.filter((h) => {
+      const hs = toDayValue(new Date(h.start));
+      const he = toDayValue(new Date(h.end));
+      return s <= he && e >= hs;
+    });
+  }, [formValues.start, formValues.end]);
 
   useEffect(() => {
     if (activeEvent !== null) {
@@ -166,6 +184,24 @@ export const CalendarModal = () => {
             />
           </div>
 
+          {overlappingSpecials.length > 0 && (
+            <Alert
+              variant="light"
+              color="orange"
+              icon={<IconConfetti size={18} />}
+              title="¡Ojo! Hay fechas especiales en este rango"
+              radius="md"
+            >
+              <Stack gap={2}>
+                {overlappingSpecials.map((h, i) => (
+                  <Text size="sm" key={`${h.id}-${i}`}>
+                    • {h.title}
+                  </Text>
+                ))}
+              </Stack>
+            </Alert>
+          )}
+
           <TextInput
             label="Una descripción corta"
             name="title"
@@ -258,7 +294,6 @@ export const CalendarModal = () => {
             <Button
               type="submit"
               leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-              color="blue"
               disabled={formSubmitted && formValues.title.length === 0}
             >
               {activeEvent?.id ? 'Modificar' : 'Guardar'}

@@ -5,17 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Swal from 'sweetalert2';
 import { useAuthStore, useForm } from '@/hooks';
-import { 
-  Container, 
-  Paper, 
-  TextInput, 
-  PasswordInput, 
-  Button, 
-  Title, 
-  Text, 
-  Anchor, 
+import { AuthCard } from '@/components';
+import {
+  TextInput,
+  PasswordInput,
+  Button,
+  Text,
+  Anchor,
   Stack,
-  Center
 } from '@mantine/core';
 
 const loginFormFields = {
@@ -34,17 +31,12 @@ const validatePassword = (password: string): boolean => {
 
 export default function LoginPage() {
   const { startLogin, errorMessage, status, checkAuthToken } = useAuthStore();
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
   }>({});
   const router = useRouter();
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
 
   const {
     loginEmail,
@@ -120,16 +112,18 @@ export default function LoginPage() {
   }, [status, router]);
 
   return (
-    <Container size={420} my={40}>
-      <Center>
-        <Paper withBorder shadow="md" p={30} mt={30} radius="md" style={{ width: '100%' }}>
-          <Title ta="center" mb="xs">
-            ¡Hola!
-          </Title>
-          <Text c="dimmed" size="sm" ta="center" mb={30}>
-            Bienvenido a La Margarita Reservas
-          </Text>
-
+    <AuthCard
+      title="¡Hola de nuevo!"
+      subtitle="Ingresá para gestionar tus reservas"
+      footer={
+        <>
+          ¿No tenés cuenta?{' '}
+          <Anchor component={Link} href="/register" size="sm" fw={500}>
+            Registrate acá
+          </Anchor>
+        </>
+      }
+    >
           <form onSubmit={loginSubmit}>
             <Stack>
               <TextInput
@@ -157,10 +151,11 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
 
-              <Button 
-                type="submit" 
-                fullWidth 
-                mt="xl"
+              <Button
+                type="submit"
+                fullWidth
+                mt="md"
+                size="md"
                 loading={isLoading}
                 disabled={isLoading}
               >
@@ -169,20 +164,11 @@ export default function LoginPage() {
             </Stack>
           </form>
 
-          <Text c="dimmed" size="sm" ta="center" mt="md">
+          <Text c="dimmed" size="sm" ta="center" mt="lg">
             <Anchor component={Link} href="/forgot-password" size="sm">
               ¿Olvidaste tu contraseña?
             </Anchor>
           </Text>
-
-          <Text c="dimmed" size="sm" ta="center" mt="xs">
-            ¿No tenés cuenta?{' '}
-            <Anchor component={Link} href="/register" size="sm">
-              Registrate acá
-            </Anchor>
-          </Text>
-        </Paper>
-      </Center>
-    </Container>
+    </AuthCard>
   );
 }
