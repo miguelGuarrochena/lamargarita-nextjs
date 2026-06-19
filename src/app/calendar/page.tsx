@@ -98,14 +98,18 @@ export default function CalendarPage() {
     };
   }, []);
 
-  const onDoubleClick = useCallback(
+  const onSelectEvent = useCallback(
     (event: CalendarEvent) => {
-      if (!isOwnEvent(event, user)) return;
-      setActiveEvent(event);
-    },
-    [user, setActiveEvent]
-  );
+      if (!isOwnEvent(event, user)) {
+        setActiveEvent(null);
+        return;
+      }
 
+      setActiveEvent(event);
+      openDateModal();
+    },
+    [user, setActiveEvent, openDateModal]
+  );
   const onSelectSlot = useCallback(
     (slotInfo: { start: Date; end: Date }) => {
       const today = new Date();
@@ -147,18 +151,6 @@ export default function CalendarPage() {
     [setActiveEvent]
   );
 
-  const onSelectEvent = useCallback(
-    (event: CalendarEvent) => {
-      if (!isOwnEvent(event, user)) {
-        setActiveEvent(null);
-        return;
-      }
-
-      setActiveEvent(event);
-    },
-    [user, setActiveEvent]
-  );
-
   const onViewChanged = useCallback((view: string) => {
     localStorage.setItem('lastView', view);
     setLastView(view);
@@ -190,7 +182,7 @@ export default function CalendarPage() {
     view: lastView,
     date: currentDate,
     selected: activeEvent,
-    onDoubleClickEvent: onDoubleClick,
+    onDoubleClickEvent: onSelectEvent,
     onSelectSlot,
     onSelectEvent,
     onView: onViewChanged,

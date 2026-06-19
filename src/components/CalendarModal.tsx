@@ -211,12 +211,9 @@ export const CalendarModal = () => {
         },
       }}
     >
-      <form
-        onSubmit={onSubmit}
-        className={isMobile ? 'lm-modal-form lm-modal-form--mobile' : 'lm-modal-form'}
-      >
+      <form onSubmit={onSubmit} className="lm-modal-form">
         <Box className="lm-modal-form__scroll">
-          <Stack gap="md" p="md">
+          <Stack gap="md" p="md" pb="calc(env(safe-area-inset-bottom, 0px) + 1.5rem)">
           <div>
             <Text size="sm" fw={500} mb={5}>Fecha de entrada</Text>
             <DatePicker
@@ -346,55 +343,29 @@ export const CalendarModal = () => {
             rows={4}
           />
 
-          {!isMobile && (
-            <Stack gap="sm" mt="md" className="lm-modal-actions">
-              <Button
-                type="submit"
-                fullWidth
-                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                disabled={formSubmitted && formValues.title.length === 0}
-              >
-                {activeEvent?.id ? 'Modificar' : 'Guardar'}
-              </Button>
-              <Button
-                fullWidth
-                variant="outline"
-                type="button"
-                onClick={onCloseModal}
-                leftSection={<IconX size={16} />}
-              >
-                Cancelar
-              </Button>
-            </Stack>
-          )}
-          {!isMobile && dangerZone}
+          <Stack gap="sm" mt="md" className="lm-modal-actions">
+            <Button
+              type="submit"
+              fullWidth
+              leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+              disabled={formSubmitted && formValues.title.length === 0}
+            >
+              {activeEvent?.id ? 'Modificar' : 'Guardar'}
+            </Button>
+            <Button
+              fullWidth
+              variant="outline"
+              type="button"
+              onClick={onCloseModal}
+              leftSection={<IconX size={16} />}
+            >
+              Cancelar
+            </Button>
+          </Stack>
+
+          {dangerZone}
           </Stack>
         </Box>
-
-        {isMobile && (
-          <Box className="lm-modal-form__footer">
-            <Stack gap="sm">
-              <Button
-                type="submit"
-                fullWidth
-                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                disabled={formSubmitted && formValues.title.length === 0}
-              >
-                {activeEvent?.id ? 'Modificar' : 'Guardar'}
-              </Button>
-              <Button
-                fullWidth
-                variant="outline"
-                type="button"
-                onClick={onCloseModal}
-                leftSection={<IconX size={16} />}
-              >
-                Cancelar
-              </Button>
-              {dangerZone}
-            </Stack>
-          </Box>
-        )}
       </form>
     </Modal>
   );
