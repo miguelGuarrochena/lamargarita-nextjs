@@ -36,6 +36,7 @@ import {
   Modal,
   Box,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   IconBed,
   IconBath,
@@ -69,6 +70,7 @@ export default function ChecklistPage() {
   const [eventsReady, setEventsReady] = useState(false);
   const [showThanks, setShowThanks] = useState(false);
   const wasCompleteRef = useRef<boolean | null>(null);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   useEffect(() => {
     checkAuthToken();
@@ -306,12 +308,9 @@ export default function ChecklistPage() {
           opened={showThanks}
           onClose={closeThanks}
           centered
-          radius="lg"
           padding={0}
           size="md"
           title={null}
-          withCloseButton
-          overlayProps={{ opacity: 0.55, blur: 3 }}
           styles={{
             content: { overflow: 'hidden' },
             close: { zIndex: 2 },
@@ -343,7 +342,7 @@ export default function ChecklistPage() {
             >
               ¡Gracias por tu visita!
             </Text>
-            <Button mt="sm" onClick={closeThanks}>
+            <Button mt="sm" fullWidth={isMobile} onClick={closeThanks}>
               Cerrar
             </Button>
           </Stack>

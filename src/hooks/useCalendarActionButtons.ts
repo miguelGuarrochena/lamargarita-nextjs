@@ -2,7 +2,7 @@
 
 import Swal from 'sweetalert2';
 import { useCalendarCreateAction } from '@/hooks/useCalendarCreateAction';
-import { scheduleUiLockRelease, waitForModalClose } from '@/lib/releaseUiLocks';
+import { scheduleUiLockRelease, waitForModalClose, releaseUiLocks } from '@/lib/releaseUiLocks';
 import { useUiStore as useUiStoreZustand } from '@/stores/useUiStore';
 
 type ConfirmDeleteOptions = {
@@ -10,12 +10,13 @@ type ConfirmDeleteOptions = {
 };
 
 export async function confirmDeleteReservation(
-  startDeletingEvent: () => Promise<void>,
+  startDeletingEvent: () => Promise<boolean>,
   options?: ConfirmDeleteOptions
 ): Promise<boolean> {
   try {
     if (options?.afterCloseModal) {
       await waitForModalClose();
+      releaseUiLocks();
     }
 
     const result = await Swal.fire({
@@ -26,15 +27,16 @@ export async function confirmDeleteReservation(
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#e03131',
+      allowOutsideClick: false,
     });
 
     if (!result.isConfirmed) return false;
 
-    await startDeletingEvent();
-    return true;
+    const deleted = await startDeletingEvent();
+    return deleted;
   } finally {
     useUiStoreZustand.getState().onCloseDateModal();
-    scheduleUiLockRelease();
+    window.setTimeout(() => scheduleUiLockRelease(), 50);
   }
 }
 

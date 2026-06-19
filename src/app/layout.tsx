@@ -69,6 +69,11 @@ const theme = createTheme({
       defaultProps: {
         radius: 'lg',
         transitionProps: { transition: 'pop', duration: 220 },
+        withCloseButton: true,
+        closeOnClickOutside: true,
+        closeOnEscape: true,
+        zIndex: 2000,
+        overlayProps: { backgroundOpacity: 0.55, blur: 3 },
       },
     },
     Button: {

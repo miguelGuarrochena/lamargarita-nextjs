@@ -8,7 +8,7 @@ interface CalendarStore extends CalendarState {
   onSetActiveEvent: (event: Event | null) => void;
   onAddNewEvent: (event: Event) => void;
   onUpdateEvent: (event: Event) => void;
-  onDeleteEvent: () => void;
+  onDeleteEvent: (deletedId?: string) => void;
   onHideSpecialEvent: (id: string) => void;
   onLoadEvents: (events: Event[]) => void;
   onSetLoadingEvents: (loading: boolean) => void;
@@ -37,14 +37,14 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     activeEvent: null,
   })),
 
-  onDeleteEvent: () => set((state) => {
-    if (state.activeEvent) {
-      return {
-        events: state.events.filter((event) => event.id !== state.activeEvent!.id),
-        activeEvent: null,
-      };
-    }
-    return state;
+  onDeleteEvent: (deletedId?: string) => set((state) => {
+    const id = deletedId ?? state.activeEvent?.id;
+    if (!id) return state;
+
+    return {
+      events: state.events.filter((event) => event.id !== id),
+      activeEvent: state.activeEvent?.id === id ? null : state.activeEvent,
+    };
   }),
 
   onHideSpecialEvent: (id: string) => set((state) => {

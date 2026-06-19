@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Modal, TextInput, Textarea, Select, NumberInput, Button, Stack, Text, Box, Flex, Alert, Divider } from '@mantine/core';
+import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert, Divider } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -106,10 +106,14 @@ export const CalendarModal = () => {
   const canDelete = !!activeEvent?.id && canManageEvent(activeEvent, user);
 
   const onDelete = async () => {
+    const eventToDelete = activeEvent;
+    if (!eventToDelete?.id) return;
+
     closeEditModalOnly();
-    const deleted = await confirmDeleteReservation(startDeletingEvent, {
-      afterCloseModal: true,
-    });
+    const deleted = await confirmDeleteReservation(
+      () => startDeletingEvent(eventToDelete),
+      { afterCloseModal: true }
+    );
     if (deleted) {
       setActiveEvent(null);
     }
@@ -179,39 +183,22 @@ export const CalendarModal = () => {
         </Text>
       }
       size="md"
-      fullScreen={isMobile}
-      centered={!isMobile}
-      zIndex={2000}
-      overlayProps={{
-        backgroundOpacity: 0.55,
-        blur: 3,
-      }}
-      withCloseButton
-      closeOnClickOutside
-      closeOnEscape
+      centered
       trapFocus
       lockScroll
       onExitTransitionEnd={scheduleUiLockRelease}
       styles={{
         content: {
-          display: 'flex',
-          flexDirection: 'column',
-          height: isMobile ? '100dvh' : undefined,
-          maxHeight: isMobile ? '100dvh' : '90dvh',
+          maxHeight: 'min(90dvh, 720px)',
         },
         body: {
-          padding: 0,
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
+          maxHeight: 'calc(min(90dvh, 720px) - 4.5rem)',
+          overflowY: 'auto',
         },
       }}
     >
-      <form onSubmit={onSubmit} className="lm-modal-form">
-        <Box className="lm-modal-form__scroll">
-          <Stack gap="md" p="md" pb="calc(env(safe-area-inset-bottom, 0px) + 1.5rem)">
+      <form onSubmit={onSubmit}>
+        <Stack gap="md">
           <div>
             <Text size="sm" fw={500} mb={5}>Fecha de entrada</Text>
             <DatePicker
@@ -341,29 +328,48 @@ export const CalendarModal = () => {
             rows={4}
           />
 
-          <Stack gap="sm" mt="md" className="lm-modal-actions">
-            <Button
-              type="submit"
-              fullWidth
-              leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-              disabled={formSubmitted && formValues.title.length === 0}
-            >
-              {activeEvent?.id ? 'Modificar' : 'Guardar'}
-            </Button>
-            <Button
-              fullWidth
-              variant="outline"
-              type="button"
-              onClick={onCloseModal}
-              leftSection={<IconX size={16} />}
-            >
-              Cancelar
-            </Button>
-          </Stack>
+          {isMobile ? (
+            <Stack gap="sm" mt="md">
+              <Button
+                type="submit"
+                fullWidth
+                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+                disabled={formSubmitted && formValues.title.length === 0}
+              >
+                {activeEvent?.id ? 'Modificar' : 'Guardar'}
+              </Button>
+              <Button
+                fullWidth
+                variant="outline"
+                type="button"
+                onClick={onCloseModal}
+                leftSection={<IconX size={16} />}
+              >
+                Cancelar
+              </Button>
+            </Stack>
+          ) : (
+            <Group justify="flex-end" mt="md" gap="sm">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={onCloseModal}
+                leftSection={<IconX size={16} />}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+                disabled={formSubmitted && formValues.title.length === 0}
+              >
+                {activeEvent?.id ? 'Modificar' : 'Guardar'}
+              </Button>
+            </Group>
+          )}
 
           {dangerZone}
-          </Stack>
-        </Box>
+        </Stack>
       </form>
     </Modal>
   );

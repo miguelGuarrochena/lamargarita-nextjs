@@ -42,6 +42,6 @@ type ApiEvent = { booking: string; user: { toString(): string } };
 type ApiUser = { uid: string; name?: string };
 
 export function canManageEventOnServer(event: ApiEvent, user: ApiUser): boolean {
-  if (event.user.toString() === user.uid) return true;
+  if (String(event.user) === String(user.uid)) return true;
   return isAdminUser({ name: user.name }) && SYSTEM_ADMIN_BOOKINGS.has(event.booking);
 }

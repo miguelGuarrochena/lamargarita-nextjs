@@ -178,7 +178,9 @@ export const useCalendarStore = () => {
     }
   };
 
-  const startDeletingEvent = async () => {
+  const startDeletingEvent = async (eventOverride?: Event | null): Promise<boolean> => {
+    const activeEvent = eventOverride ?? useCalendarStoreZustand.getState().activeEvent;
+
     if (!activeEvent) {
       ClientErrorHandler.logError(
         new Error('No active event to delete'),
@@ -186,7 +188,7 @@ export const useCalendarStore = () => {
         { activeEvent }
       );
       Swal.fire('Error', 'No hay evento seleccionado para eliminar', 'error');
-      return;
+      return false;
     }
 
     // Feriados/vacaciones del calendario (cliente) no están en la API
@@ -194,7 +196,7 @@ export const useCalendarStore = () => {
       if (isSystemAdminEvent(activeEvent)) {
         onHideSpecialEvent(activeEvent.id!);
         onSetActiveEvent(null);
-        return;
+        return true;
       }
 
       ClientErrorHandler.logError(
@@ -203,19 +205,19 @@ export const useCalendarStore = () => {
         { activeEvent }
       );
       Swal.fire('Error de validación', 'No se puede eliminar este evento', 'error');
-      return;
+      return false;
     }
 
     // Validate event ID
     if (!activeEvent.id || activeEvent.id === 'undefined' || activeEvent.id.trim() === '') {
-      const { userMessage, technicalMessage } = ClientErrorHandler.handleValidationError('eventId', activeEvent.id);
+      const { userMessage } = ClientErrorHandler.handleValidationError('eventId', activeEvent.id);
       ClientErrorHandler.logError(
         new Error('Invalid event ID for deletion'),
         'startDeletingEvent - Validation',
         { activeEvent }
       );
       Swal.fire('Error de validación', userMessage, 'error');
-      return;
+      return false;
     }
 
     try {
@@ -227,7 +229,7 @@ export const useCalendarStore = () => {
           { activeEvent }
         );
         Swal.fire('Error de autenticación', ERROR_MESSAGES.USER.AUTHENTICATION, 'error');
-        return;
+        return false;
       }
 
       const response = await fetch(`/api/events/${activeEvent.id}`, {
@@ -239,7 +241,7 @@ export const useCalendarStore = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const { userMessage, technicalMessage } = ClientErrorHandler.parseApiError(
+        const { userMessage } = ClientErrorHandler.parseApiError(
           errorData,
           ERROR_MESSAGES.USER.EVENT_DELETE_FAILED
         );
@@ -247,47 +249,50 @@ export const useCalendarStore = () => {
         ClientErrorHandler.logError(
           new Error('API delete event failed'),
           'startDeletingEvent - API Error',
-          { 
+          {
             activeEvent,
             response: {
               status: response.status,
               statusText: response.statusText,
-              errorData
-            }
+              errorData,
+            },
           }
         );
 
         Swal.fire('Error al eliminar', userMessage, 'error');
-        return;
+        return false;
       }
 
       const data = await response.json();
 
       if (data.ok) {
-        onDeleteEvent();
-      } else {
-        const { userMessage, technicalMessage } = ClientErrorHandler.parseApiError(
-          data,
-          ERROR_MESSAGES.USER.EVENT_DELETE_FAILED
-        );
-
-        ClientErrorHandler.logError(
-          new Error('API delete event returned error'),
-          'startDeletingEvent - API Response Error',
-          { activeEvent, responseData: data }
-        );
-
-        Swal.fire('Error al eliminar', userMessage, 'error');
+        onDeleteEvent(activeEvent.id);
+        return true;
       }
+
+      const { userMessage } = ClientErrorHandler.parseApiError(
+        data,
+        ERROR_MESSAGES.USER.EVENT_DELETE_FAILED
+      );
+
+      ClientErrorHandler.logError(
+        new Error('API delete event returned error'),
+        'startDeletingEvent - API Response Error',
+        { activeEvent, responseData: data }
+      );
+
+      Swal.fire('Error al eliminar', userMessage, 'error');
+      return false;
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        const { userMessage, technicalMessage } = ClientErrorHandler.handleNetworkError(error, 'delete event');
+        const { userMessage } = ClientErrorHandler.handleNetworkError(error, 'delete event');
         ClientErrorHandler.logError(error, 'startDeletingEvent - Network Error', { activeEvent });
         Swal.fire('Error de conexión', userMessage, 'error');
       } else {
         ClientErrorHandler.logError(error, 'startDeletingEvent - Unexpected Error', { activeEvent });
         Swal.fire('Error inesperado', ERROR_MESSAGES.USER.EVENT_DELETE_FAILED, 'error');
       }
+      return false;
     }
   };
 
