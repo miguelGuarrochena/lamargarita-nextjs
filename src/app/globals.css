@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-big-calendar/lib/css/react-big-calendar.css";
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
 
 /* ===== Design tokens ===== */
@@ -174,6 +175,35 @@
 
 .lm-bottom-nav__item--active {
   color: var(--lm-green-600);
+}
+
+.lm-bottom-nav__create {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--lm-green-700);
+  min-height: var(--lm-bottom-nav-h);
+  transition: transform 0.15s ease;
+}
+
+.lm-bottom-nav__create:active {
+  transform: scale(0.94);
+}
+
+.lm-bottom-nav__create-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--lm-green-500), var(--lm-green-600));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(26, 157, 122, 0.45);
 }
 
 .lm-shell-main {
@@ -518,17 +548,44 @@ body {
   border-radius: 50%;
 }
 
-/* ===== Floating action buttons ===== */
+.lm-danger-zone {
+  padding-top: 4px;
+  background: linear-gradient(180deg, transparent, rgba(224, 49, 49, 0.04));
+  border-top: 1px solid rgba(224, 49, 49, 0.08);
+  border-radius: 0 0 var(--mantine-radius-lg) var(--mantine-radius-lg);
+}
+
+.lm-modal-scroll {
+  min-height: min-content;
+}
+
+.lm-modal-actions {
+  padding-bottom: 4px;
+}
+
+.lm-bottom-nav__create--danger .lm-bottom-nav__create-icon {
+  background: linear-gradient(145deg, #fa5252, #e03131);
+  box-shadow: 0 6px 18px rgba(224, 49, 49, 0.45);
+}
+
+/* ===== Floating action buttons (desktop) ===== */
 .fab {
   border-radius: 100%;
-  bottom: calc(25px + var(--lm-bottom-nav-h));
+  bottom: 28px;
   font-size: 30px;
   padding: 25px;
   position: fixed;
-  right: 25px;
-  z-index: 1000;
+  right: 28px;
+  z-index: 300;
   box-shadow: 0 8px 24px rgba(31, 157, 131, 0.35) !important;
   transition: transform .15s ease, box-shadow .15s ease;
+}
+
+@media (max-width: 767px) {
+  .fab,
+  .fab-danger {
+    display: none !important;
+  }
 }
 
 .fab:hover {
@@ -537,13 +594,13 @@ body {
 
 .fab-danger {
   border-radius: 100%;
-  bottom: calc(25px + var(--lm-bottom-nav-h));
+  bottom: 25px;
   font-size: 22px;
   position: fixed;
   left: 25px;
   width: 70px;
   height: 70px;
-  z-index: 1000;
+  z-index: 210;
   box-shadow: 0 8px 24px rgba(225, 67, 67, 0.3) !important;
 }
 
@@ -595,27 +652,25 @@ body {
   box-shadow: 0 0 0 3px rgba(31, 157, 131, 0.15);
 }
 
+/* ===== SweetAlert2 above Mantine modals ===== */
+.swal2-container {
+  z-index: 3000 !important;
+}
+
+.swal2-container:not(.swal2-backdrop-show) {
+  pointer-events: none !important;
+}
+
 /* ===== Mantine modal z-index fixes ===== */
 .mantine-Modal-root { z-index: 2000 !important; }
 .mantine-Modal-inner { z-index: 2001 !important; }
+.mantine-Modal-overlay[data-hidden],
+.mantine-Modal-overlay[aria-hidden='true'] {
+  pointer-events: none !important;
+}
 .mantine-Modal-content {
   z-index: 2002 !important;
-  max-height: 90vh !important;
-  overflow-y: auto !important;
   border-radius: var(--lm-radius) !important;
-}
-
-@media (max-width: 768px) {
-  .mantine-Modal-content {
-    margin: 10px !important;
-    max-height: 95vh !important;
-    width: calc(100vw - 20px) !important;
-  }
-  .mantine-Modal-body {
-    padding: 15px !important;
-    max-height: calc(95vh - 60px) !important;
-    overflow-y: auto !important;
-  }
 }
 
 /* ===== React Big Calendar ===== */
@@ -633,9 +688,38 @@ body {
   flex-direction: column;
 }
 
+/* Restaura el grid flex (Tailwind preflight lo rompe) */
 .lm-calendar-wrap .rbc-month-view {
+  display: flex !important;
+  flex-direction: column !important;
   flex: 1;
   min-height: 0;
+}
+
+.lm-calendar-wrap .rbc-month-header,
+.lm-calendar-wrap .rbc-row {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+.lm-calendar-wrap .rbc-month-row {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 0 0 !important;
+  min-height: 0;
+}
+
+.lm-calendar-wrap .rbc-row-bg {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 0 0 !important;
+}
+
+.lm-calendar-wrap .rbc-header,
+.lm-calendar-wrap .rbc-day-bg,
+.lm-calendar-wrap .rbc-date-cell {
+  flex: 1 1 0 !important;
+  min-width: 0;
 }
 
 .rbc-header {
@@ -669,6 +753,11 @@ body {
 
 .rbc-date-cell.rbc-off-range {
   color: #c2c7cd;
+}
+
+.rbc-day-bg {
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
 .rbc-event {

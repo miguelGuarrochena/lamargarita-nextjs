@@ -19,17 +19,12 @@ export const FabDelete = () => {
 
   return (
     <ActionIcon
+      className="fab-danger"
       size={70}
       radius="xl"
       color="red"
       variant="filled"
       onClick={handleDelete}
-      style={{
-        position: 'fixed',
-        bottom: 25,
-        left: 25,
-        zIndex: 150, // Reduced z-index to stay below modal
-      }}
     >
       <IconTrash size={22} />
     </ActionIcon>

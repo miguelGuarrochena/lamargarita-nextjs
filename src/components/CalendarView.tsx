@@ -1,7 +1,6 @@
 'use client';
 
 import { Calendar } from 'react-big-calendar';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { localizer } from '@/lib/helpers';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import type { CalendarEvent } from '@/types';
@@ -64,6 +63,8 @@ export default function CalendarView({
       components={{ event: CalendarEventComponent }}
       selectable
       selected={selected}
+      drilldownView={null}
+      longPressThreshold={10}
       onDoubleClickEvent={onDoubleClickEvent}
       onSelectSlot={onSelectSlot}
       onSelectEvent={onSelectEvent}

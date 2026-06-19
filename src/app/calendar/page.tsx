@@ -6,8 +6,6 @@ import dynamic from 'next/dynamic';
 import { AppShell, Loader, Center, Box, Overlay } from '@mantine/core';
 
 import { Navbar } from '@/components/Navbar';
-import { FabAddNew } from '@/components/FabAddNew';
-import { FabDelete } from '@/components/FabDelete';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
 import { useSpecialEvents } from '@/hooks/useSpecialEvents';
 import { BookingType, CalendarEvent } from '@/types';
@@ -114,8 +112,8 @@ export default function CalendarPage() {
       today.setHours(0, 0, 0, 0);
       const slotDate = new Date(slotInfo.start);
       slotDate.setHours(0, 0, 0, 0);
-      if (slotDate < today) return;
-      if (activeEvent) {
+
+      if (slotDate < today) {
         setActiveEvent(null);
         return;
       }
@@ -134,12 +132,35 @@ export default function CalendarPage() {
       } as CalendarEvent);
       openDateModal();
     },
-    [activeEvent, setActiveEvent, openDateModal]
+    [setActiveEvent, openDateModal]
+  );
+
+  const handleCalendarClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.rbc-event, .rbc-toolbar, button, a')) return;
+      if (target.closest('.rbc-day-bg, .rbc-date-cell')) return;
+      if (target.closest('.rbc-calendar')) {
+        setActiveEvent(null);
+      }
+    },
+    [setActiveEvent]
   );
 
   const onSelectEvent = useCallback(
-    (event: CalendarEvent) => setActiveEvent(event),
-    [setActiveEvent]
+    (event: CalendarEvent) => {
+      const isOwn =
+        !!user && !!event.user && event.user._id === user.uid;
+
+      if (!isOwn) {
+        setActiveEvent(null);
+        return;
+      }
+
+      setActiveEvent(event);
+      openDateModal();
+    },
+    [user, setActiveEvent, openDateModal]
   );
 
   const onViewChanged = useCallback((view: string) => {
@@ -182,6 +203,7 @@ export default function CalendarPage() {
   };
 
   return (
+    <>
     <AppShell header={{ height: HEADER_HEIGHT }} padding={0} className="lm-calendar-shell">
       <Navbar />
 
@@ -192,7 +214,13 @@ export default function CalendarPage() {
           overflow: 'hidden',
         }}
       >
-        <Box h="100%" px={{ base: 6, sm: 10 }} py={6} className="lm-calendar-wrap">
+        <Box
+          h="100%"
+          px={{ base: 6, sm: 10 }}
+          py={6}
+          className="lm-calendar-wrap"
+          onClick={handleCalendarClick}
+        >
           <CalendarView {...calendarProps} />
         </Box>
 
@@ -207,11 +235,10 @@ export default function CalendarPage() {
             </Center>
           </Overlay>
         )}
-
-        <CalendarModal />
-        <FabAddNew />
-        <FabDelete />
       </AppShell.Main>
     </AppShell>
+
+    <CalendarModal />
+    </>
   );
 }

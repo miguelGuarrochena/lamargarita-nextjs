@@ -15,6 +15,7 @@ import {
 import { IconLogout, IconCalendar, IconChecklist, IconHome } from '@tabler/icons-react';
 import { BrandLockup } from './BrandLockup';
 import { MobileBottomNav } from './MobileBottomNav';
+import { CalendarActionControls } from './CalendarActionControls';
 
 const navLinks = [
   { href: '/', label: 'Inicio', icon: IconHome, exact: true },
@@ -25,6 +26,7 @@ const navLinks = [
 export const Navbar = () => {
   const { startLogout, user } = useAuthStore();
   const pathname = usePathname();
+  const onCalendar = pathname.startsWith('/calendar');
 
   const capitalizeFirst = (str: string) =>
     str.charAt(0).toUpperCase() + str.slice(1);
@@ -60,6 +62,8 @@ export const Navbar = () => {
                 </Button>
               );
             })}
+
+            {onCalendar && <CalendarActionControls variant="navbar" />}
 
             {displayName && (
               <Group gap="xs" ml={4} visibleFrom="md">

@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState, useEffect, forwardRef } from 'react';
-import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert } from '@mantine/core';
+import { useMemo, useState, useEffect } from 'react';
+import { Modal, TextInput, Textarea, Select, NumberInput, Button, Stack, Text, Box, Flex, Alert, Divider } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { es } from 'date-fns/locale';
@@ -9,7 +10,9 @@ import { useAuthStore, useCalendarStore, useUiStore } from '@/hooks';
 import { reservas } from '@/lib/reservas';
 import { specialEvents2026 } from '@/lib/specialDates2026';
 import { Event, BookingType } from '@/types';
-import { IconDeviceFloppy, IconEdit, IconX, IconConfetti } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash } from '@tabler/icons-react';
+import { confirmDeleteReservation } from '@/hooks/useCalendarActionButtons';
+import { scheduleUiLockRelease } from '@/lib/releaseUiLocks';
 
 const toDayValue = (d: Date) => {
   const x = new Date(d);
@@ -34,8 +37,9 @@ const bookingColors: Record<string, string> = {
 
 export const CalendarModal = () => {
   const { isDateModalOpen, closeDateModal } = useUiStore();
-  const { activeEvent, startSavingEvent } = useCalendarStore();
+  const { activeEvent, startSavingEvent, startDeletingEvent, setActiveEvent } = useCalendarStore();
   const { user } = useAuthStore();
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [formSubmitted, setFormSubmitted] = useState(false);
 
   const [formValues, setFormValues] = useState({
@@ -96,6 +100,26 @@ export const CalendarModal = () => {
   const onCloseModal = () => {
     closeDateModal();
     setFormSubmitted(false);
+    setActiveEvent(null);
+  };
+
+  const closeEditModalOnly = () => {
+    closeDateModal();
+    setFormSubmitted(false);
+  };
+
+  const canDelete =
+    !!activeEvent?.id &&
+    (!activeEvent.user || activeEvent.user._id === user?.uid);
+
+  const onDelete = async () => {
+    closeEditModalOnly();
+    const deleted = await confirmDeleteReservation(startDeletingEvent, {
+      afterCloseModal: true,
+    });
+    if (deleted) {
+      setActiveEvent(null);
+    }
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -114,6 +138,7 @@ export const CalendarModal = () => {
     await startSavingEvent(eventToSave);
     closeDateModal();
     setFormSubmitted(false);
+    setActiveEvent(null);
   };
 
   const selectData = [
@@ -139,21 +164,35 @@ export const CalendarModal = () => {
         </Text>
       }
       size="md"
-      centered
+      fullScreen={isMobile}
+      centered={!isMobile}
       zIndex={2000}
       overlayProps={{
         backgroundOpacity: 0.55,
         blur: 3,
       }}
-      scrollAreaComponent={undefined}
-      withCloseButton={true}
-      closeOnClickOutside={true}
-      closeOnEscape={true}
-      trapFocus={true}
-      lockScroll={true}
+      withCloseButton
+      closeOnClickOutside
+      closeOnEscape
+      trapFocus
+      lockScroll
+      onExitTransitionEnd={scheduleUiLockRelease}
+      styles={{
+        content: {
+          maxHeight: isMobile ? '100dvh' : '90dvh',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+        body: {
+          padding: 0,
+          overflowY: 'auto',
+          flex: 1,
+          minHeight: 0,
+        },
+      }}
     >
       <form onSubmit={onSubmit}>
-        <Stack gap="md">
+        <Stack gap="md" p="md" pb="xl" className="lm-modal-scroll">
           <div>
             <Text size="sm" fw={500} mb={5}>Fecha de entrada</Text>
             <DatePicker
@@ -283,22 +322,47 @@ export const CalendarModal = () => {
             rows={4}
           />
 
-          <Group justify="flex-end" mt="md">
-            <Button
-              variant="outline"
-              onClick={onCloseModal}
-              leftSection={<IconX size={16} />}
-            >
-              Cancelar
-            </Button>
+          <Stack gap="sm" mt="md" className="lm-modal-actions">
             <Button
               type="submit"
+              fullWidth
               leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
               disabled={formSubmitted && formValues.title.length === 0}
             >
               {activeEvent?.id ? 'Modificar' : 'Guardar'}
             </Button>
-          </Group>
+            <Button
+              fullWidth
+              variant="outline"
+              type="button"
+              onClick={onCloseModal}
+              leftSection={<IconX size={16} />}
+            >
+              Cancelar
+            </Button>
+          </Stack>
+
+          {canDelete && (
+            <Box className="lm-danger-zone" mt="lg">
+              <Divider mb="md" />
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={6} style={{ letterSpacing: '0.06em' }}>
+                Zona de peligro
+              </Text>
+              <Text size="sm" c="dimmed" mb="sm">
+                Esta acción elimina la reserva de forma permanente.
+              </Text>
+              <Button
+                type="button"
+                fullWidth
+                color="red"
+                variant="light"
+                leftSection={<IconTrash size={16} />}
+                onClick={onDelete}
+              >
+                Eliminar reserva
+              </Button>
+            </Box>
+          )}
         </Stack>
       </form>
     </Modal>
