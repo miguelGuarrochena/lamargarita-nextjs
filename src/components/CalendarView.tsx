@@ -29,6 +29,7 @@ export interface CalendarViewProps {
   onDoubleClickEvent: (event: CalendarEvent) => void;
   onSelectSlot: (slotInfo: { start: Date; end: Date }) => void;
   onSelectEvent: (event: CalendarEvent) => void;
+  onDrillDown: (date: Date) => void;
   onView: (view: string) => void;
   onNavigate: (date: Date) => void;
   eventPropGetter: (event: CalendarEvent & { color?: string }) => { style: React.CSSProperties };
@@ -42,6 +43,7 @@ export default function CalendarView({
   onDoubleClickEvent,
   onSelectSlot,
   onSelectEvent,
+  onDrillDown,
   onView,
   onNavigate,
   eventPropGetter,
@@ -63,11 +65,11 @@ export default function CalendarView({
       components={{ event: CalendarEventComponent }}
       selectable
       selected={selected}
-      drilldownView={null}
-      longPressThreshold={10}
+      longPressThreshold={20}
       onDoubleClickEvent={onDoubleClickEvent}
       onSelectSlot={onSelectSlot}
       onSelectEvent={onSelectEvent}
+      onDrillDown={onDrillDown}
       onSelecting={() => true}
       onView={onView}
       onNavigate={onNavigate}

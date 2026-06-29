@@ -7,8 +7,6 @@ import { AppShell, Loader, Center, Box, Overlay } from '@mantine/core';
 
 import { Navbar } from '@/components/Navbar';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
-import { useUiStore as useUiStoreZustand } from '@/stores/useUiStore';
-import { useCalendarStore as useCalendarStoreZustand } from '@/stores/useCalendarStore';
 import { useSpecialEvents } from '@/hooks/useSpecialEvents';
 import { canManageEvent } from '@/lib/eventOwnership';
 import { BookingType, CalendarEvent } from '@/types';
@@ -100,20 +98,48 @@ export default function CalendarPage() {
     };
   }, []);
 
-  const openEventEditor = useCallback(
-    (event: CalendarEvent) => {
-      if (!canManageEvent(event, user)) {
-        useCalendarStoreZustand.getState().onSetActiveEvent(null);
+  const createReservationForDate = useCallback(
+    (date: Date) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(date);
+      target.setHours(0, 0, 0, 0);
+
+      // No se puede reservar en el pasado.
+      if (target < today) {
+        setActiveEvent(null);
         return;
       }
 
-      useCalendarStoreZustand.getState().onSetActiveEvent(event);
-      useUiStoreZustand.getState().onOpenDateModal();
+      setActiveEvent({
+        start: new Date(date),
+        end: new Date(date),
+        title: '',
+        booking: 'CT' as BookingType,
+        notes: '',
+      } as CalendarEvent);
+      openDateModal();
     },
-    [user]
+    [setActiveEvent, openDateModal]
+  );
+
+  const openEventEditor = useCallback(
+    (event: CalendarEvent) => {
+      // Si la reserva es de otro usuario (o es un feriado/vacaciones),
+      // dejamos crear una reserva nueva en esa fecha.
+      if (!canManageEvent(event, user)) {
+        createReservationForDate(new Date(event.start));
+        return;
+      }
+
+      setActiveEvent(event);
+      openDateModal();
+    },
+    [user, createReservationForDate, setActiveEvent, openDateModal]
   );
 
   const onSelectEvent = openEventEditor;
+
   const onSelectSlot = useCallback(
     (slotInfo: { start: Date; end: Date }) => {
       const today = new Date();
@@ -141,6 +167,11 @@ export default function CalendarPage() {
       openDateModal();
     },
     [setActiveEvent, openDateModal]
+  );
+
+  const onDrillDown = useCallback(
+    (date: Date) => createReservationForDate(date),
+    [createReservationForDate]
   );
 
   const handleCalendarClick = useCallback(
@@ -189,6 +220,7 @@ export default function CalendarPage() {
     onDoubleClickEvent: openEventEditor,
     onSelectSlot,
     onSelectEvent,
+    onDrillDown,
     onView: onViewChanged,
     onNavigate,
     eventPropGetter: eventStyleGetter,
