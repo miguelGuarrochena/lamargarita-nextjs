@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert, Divider } from '@mantine/core';
+import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -23,18 +23,16 @@ const toDayValue = (d: Date) => {
 
 registerLocale('es', es);
 
-// Color mapping for booking types based on existing CSS styles
 const bookingColors: Record<string, string> = {
-  'CT': '#e74c3c', // total - red
-  'PA': '#edc308', // parcial - yellow
-  'PR': '#086ded', // principal - blue
-  'CS': '#808000', // casita - olive
-  'FL': '#5dade2', // finde-libre - light blue
-  'NC': '#d8ed08', // no-compartible - lime
-  'FR': '#e6e6e6', // feriado - gray
-  'VC': '#e67e22', // vacaciones - orange
+  'CT': '#e74c3c',
+  'PA': '#edc308',
+  'PR': '#086ded',
+  'CS': '#808000',
+  'FL': '#5dade2',
+  'NC': '#d8ed08',
+  'FR': '#e6e6e6',
+  'VC': '#e67e22',
 };
-
 
 export const CalendarModal = () => {
   const { isDateModalOpen, closeDateModal } = useUiStore();
@@ -148,30 +146,7 @@ export const CalendarModal = () => {
     ] : []),
   ];
 
-  // Get selected booking color for display
   const selectedBookingColor = formValues.booking ? bookingColors[formValues.booking] : null;
-
-  const dangerZone = canDelete ? (
-    <Box className="lm-danger-zone" mt="md">
-      <Divider mb="md" />
-      <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={6} style={{ letterSpacing: '0.06em' }}>
-        Zona de peligro
-      </Text>
-      <Text size="sm" c="dimmed" mb="sm">
-        Esta acción elimina la reserva de forma permanente.
-      </Text>
-      <Button
-        type="button"
-        fullWidth
-        color="red"
-        variant="light"
-        leftSection={<IconTrash size={16} />}
-        onClick={onDelete}
-      >
-        Eliminar reserva
-      </Button>
-    </Box>
-  ) : null;
 
   return (
     <Modal
@@ -289,7 +264,7 @@ export const CalendarModal = () => {
                   />
                 ) : null
               }
-              renderOption={({ option, checked }) => (
+              renderOption={({ option }) => (
                 <Flex align="center" gap="sm" style={{ padding: '8px 12px' }}>
                   {option.value && (
                     <Box
@@ -302,7 +277,7 @@ export const CalendarModal = () => {
                       }}
                     />
                   )}
-                  <Text size="sm" c={!option.value ? "dimmed" : undefined}>
+                  <Text size="sm" c={!option.value ? 'dimmed' : undefined}>
                     {option.label}
                   </Text>
                 </Flex>
@@ -347,28 +322,51 @@ export const CalendarModal = () => {
               >
                 Cancelar
               </Button>
+              {canDelete && (
+                <Button
+                  type="button"
+                  fullWidth
+                  color="red"
+                  variant="light"
+                  leftSection={<IconTrash size={16} />}
+                  onClick={onDelete}
+                >
+                  Eliminar reserva
+                </Button>
+              )}
             </Stack>
           ) : (
-            <Group justify="flex-end" mt="md" gap="sm">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={onCloseModal}
-                leftSection={<IconX size={16} />}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                disabled={formSubmitted && formValues.title.length === 0}
-              >
-                {activeEvent?.id ? 'Modificar' : 'Guardar'}
-              </Button>
+            <Group justify="space-between" mt="md" gap="sm">
+              {canDelete ? (
+                <Button
+                  type="button"
+                  color="red"
+                  variant="light"
+                  leftSection={<IconTrash size={16} />}
+                  onClick={onDelete}
+                >
+                  Eliminar
+                </Button>
+              ) : <span />}
+              <Group gap="sm">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={onCloseModal}
+                  leftSection={<IconX size={16} />}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
+                  disabled={formSubmitted && formValues.title.length === 0}
+                >
+                  {activeEvent?.id ? 'Modificar' : 'Guardar'}
+                </Button>
+              </Group>
             </Group>
           )}
-
-          {dangerZone}
         </Stack>
       </form>
     </Modal>
