@@ -22,6 +22,7 @@ import {
 } from '@/lib/amigosQuota';
 import { useAmigosQuota } from '@/hooks/useAmigosQuota';
 import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash, IconUsersGroup, IconAlertCircle } from '@tabler/icons-react';
+import { AvisoCupoAmigos } from './AvisoCupoAmigos';
 import { confirmDeleteReservation } from '@/hooks/useCalendarActionButtons';
 import { canManageEvent } from '@/lib/eventOwnership';
 import { scheduleUiLockRelease } from '@/lib/releaseUiLocks';
@@ -243,6 +244,12 @@ export const CalendarModal = () => {
     !requiereTipoInvitado(activeEvent.booking) ||
     puedeCancelarse(activeEvent.start);
 
+  // El aviso de Amigos solo puede afirmar que la reserva "ya cuenta" cuando la
+  // ventana de cancelación se conoce con certeza: eso pasa únicamente con una
+  // reserva ya guardada, que es sobre la que se mide `cancelacionEnPlazo`. Para
+  // una reserva nueva (fecha todavía editable) se muestra el aviso general.
+  const cancelacionEnPlazoConocida = !activeEvent?.id || cancelacionEnPlazo;
+
   const onDelete = async () => {
     const eventToDelete = activeEvent;
     if (!eventToDelete?.id || !cancelacionEnPlazo) return;
@@ -452,6 +459,10 @@ export const CalendarModal = () => {
                   position: 'bottom-start',
                   middlewares: { flip: true, shift: true },
                 }}
+              />
+              <AvisoCupoAmigos
+                tipoInvitado={formValues.tipoInvitado}
+                cancelacionEnPlazo={cancelacionEnPlazoConocida}
               />
             </Box>
           )}

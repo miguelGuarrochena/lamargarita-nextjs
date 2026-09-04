@@ -5,3 +5,4 @@ export { BrandLockup } from './BrandLockup';
 export { DaisyLogo } from './DaisyLogo';
 export { CalendarEvent } from './CalendarEvent';
 export { CalendarModal } from './CalendarModal';
+export { AvisoCupoAmigos } from './AvisoCupoAmigos';

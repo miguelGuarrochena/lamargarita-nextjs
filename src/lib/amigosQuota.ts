@@ -192,6 +192,35 @@ export function assertPuedeCancelar(params: {
 }
 
 /**
+ * Aviso informativo del formulario cuando el tipo de invitado es Amigos.
+ *
+ * Es SOLO texto de UX: no valida, no bloquea y no participa del cupo ni de la
+ * ventana de cancelación. La regla real sigue viviendo en `puedeCancelarse` /
+ * `assertPuedeCancelar` (cancelación) y en `saveWithAmigosSlot` (cupo).
+ */
+export const AVISO_AMIGOS_CANCELABLE =
+  `Recordá: podés cancelar esta reserva hasta ${CANCELACION_ANTICIPACION_MINIMA_HORAS} horas antes. ` +
+  'Si no la cancelás dentro de ese plazo, la reserva contará para tu cupo anual de Amigos.';
+
+export const AVISO_AMIGOS_YA_CUENTA =
+  'Esta reserva contará para tu cupo anual de Amigos, ya que faltan menos de ' +
+  `${CANCELACION_ANTICIPACION_MINIMA_HORAS} horas.`;
+
+export function avisoCupoAmigos(params: {
+  /** Valor elegido en el selector de tipo de invitado. Con Familiar no hay aviso. */
+  tipoInvitado?: unknown;
+  /**
+   * `false` solo cuando el modal sabe con certeza que la ventana de cancelación
+   * de esa reserva ya pasó (dato que ya usa para habilitar el botón de eliminar).
+   * Ante la duda se deja el aviso general.
+   */
+  cancelacionEnPlazo?: boolean;
+}): string | null {
+  if (params.tipoInvitado !== TIPO_AMIGOS) return null;
+  return params.cancelacionEnPlazo === false ? AVISO_AMIGOS_YA_CUENTA : AVISO_AMIGOS_CANCELABLE;
+}
+
+/**
  * ¿El formulario debe bloquear el guardado por falta de cupo?
  *
  * Única fuente de verdad para el aviso y para los dos botones (mobile y
