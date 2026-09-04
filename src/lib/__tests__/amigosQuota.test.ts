@@ -1,52 +1,53 @@
 import { describe, expect, it } from 'vitest';
 import {
   AmigosQuotaExceededError,
+  bloqueaPorCupoAmigos,
   CANCELACION_ANTICIPACION_MINIMA_HORAS,
   CancelacionFueraDePlazoError,
   assertPuedeCancelar,
   horasHastaInicio,
   puedeCancelarse,
   DEFAULT_LIMITE_AMIGOS_ANUAL,
-  MOTIVO_AMIGOS,
-  MOTIVO_FAMILIAR,
-  MotivoRequeridoError,
+  TIPO_AMIGOS,
+  TIPO_FAMILIAR,
+  TipoInvitadoRequeridoError,
   consumesAmigosQuota,
   getReservaYear,
-  isMotivo,
+  isTipoInvitado,
   nextFreeSlot,
-  parseMotivo,
-  requiresMotivo,
+  parseTipoInvitado,
+  requiereTipoInvitado,
   resolveLimiteAmigos,
   saveWithAmigosSlot,
 } from '@/lib/amigosQuota';
 
-describe('motivo', () => {
+describe('tipoInvitado', () => {
   it('solo acepta Familiar o Amigos', () => {
-    expect(isMotivo('Familiar')).toBe(true);
-    expect(isMotivo('Amigos')).toBe(true);
-    expect(isMotivo('amigos')).toBe(false);
-    expect(isMotivo('')).toBe(false);
-    expect(isMotivo(undefined)).toBe(false);
+    expect(isTipoInvitado('Familiar')).toBe(true);
+    expect(isTipoInvitado('Amigos')).toBe(true);
+    expect(isTipoInvitado('amigos')).toBe(false);
+    expect(isTipoInvitado('')).toBe(false);
+    expect(isTipoInvitado(undefined)).toBe(false);
   });
 
   it('es obligatorio en las reservas de personas', () => {
-    expect(() => parseMotivo({ booking: 'CT' })).toThrow(MotivoRequeridoError);
-    expect(() => parseMotivo({ booking: 'CT', motivo: '' })).toThrow(MotivoRequeridoError);
-    expect(() => parseMotivo({ booking: 'CT', motivo: 'Trabajo' })).toThrow(MotivoRequeridoError);
-    expect(parseMotivo({ booking: 'CT', motivo: MOTIVO_FAMILIAR })).toBe(MOTIVO_FAMILIAR);
+    expect(() => parseTipoInvitado({ booking: 'CT' })).toThrow(TipoInvitadoRequeridoError);
+    expect(() => parseTipoInvitado({ booking: 'CT', tipoInvitado: '' })).toThrow(TipoInvitadoRequeridoError);
+    expect(() => parseTipoInvitado({ booking: 'CT', tipoInvitado: 'Trabajo' })).toThrow(TipoInvitadoRequeridoError);
+    expect(parseTipoInvitado({ booking: 'CT', tipoInvitado: TIPO_FAMILIAR })).toBe(TIPO_FAMILIAR);
   });
 
   it('no aplica a las marcas administrativas del calendario (feriado/vacaciones)', () => {
-    expect(requiresMotivo('FR')).toBe(false);
-    expect(requiresMotivo('VC')).toBe(false);
-    expect(requiresMotivo('CT')).toBe(true);
-    expect(parseMotivo({ booking: 'FR' })).toBeUndefined();
+    expect(requiereTipoInvitado('FR')).toBe(false);
+    expect(requiereTipoInvitado('VC')).toBe(false);
+    expect(requiereTipoInvitado('CT')).toBe(true);
+    expect(parseTipoInvitado({ booking: 'FR' })).toBeUndefined();
   });
 
   it('solo Amigos consume cupo', () => {
-    expect(consumesAmigosQuota({ booking: 'CT', motivo: MOTIVO_AMIGOS })).toBe(true);
-    expect(consumesAmigosQuota({ booking: 'CT', motivo: MOTIVO_FAMILIAR })).toBe(false);
-    expect(consumesAmigosQuota({ booking: 'VC', motivo: MOTIVO_AMIGOS })).toBe(false);
+    expect(consumesAmigosQuota({ booking: 'CT', tipoInvitado: TIPO_AMIGOS })).toBe(true);
+    expect(consumesAmigosQuota({ booking: 'CT', tipoInvitado: TIPO_FAMILIAR })).toBe(false);
+    expect(consumesAmigosQuota({ booking: 'VC', tipoInvitado: TIPO_AMIGOS })).toBe(false);
   });
 });
 
@@ -234,5 +235,51 @@ describe('ventana de cancelación', () => {
     expect(() =>
       assertPuedeCancelar({ start: enHoras(1), booking: 'VC', now: AHORA })
     ).not.toThrow();
+  });
+});
+
+/**
+ * Estado del botón Crear/Reservar. Es el mismo predicado que usan el aviso y
+ * los dos botones del formulario (mobile y desktop): no hay lógica duplicada.
+ */
+describe('bloqueaPorCupoAmigos (estado del botón Crear/Reservar)', () => {
+  const conCupo = { limite: 1, restantes: 1 };
+  const sinCupo = { limite: 1, restantes: 0 };
+  const ggSinCupo = { limite: 4, restantes: 0 };
+  const ilimitado = { limite: null, restantes: null };
+
+  it('12. sin cupo de Amigos -> bloquea', () => {
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: sinCupo })).toBe(true);
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: ggSinCupo })).toBe(true);
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: { limite: 0, restantes: 0 } })).toBe(true);
+  });
+
+  it('con cupo disponible -> no bloquea', () => {
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: conCupo })).toBe(false);
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: { limite: 4, restantes: 1 } })).toBe(false);
+  });
+
+  it('13. con Familiar nunca bloquea, ni siquiera sin cupo de Amigos', () => {
+    expect(bloqueaPorCupoAmigos({ esAmigos: false, quota: sinCupo })).toBe(false);
+    expect(bloqueaPorCupoAmigos({ esAmigos: false, quota: ggSinCupo })).toBe(false);
+    expect(bloqueaPorCupoAmigos({ esAmigos: false, quota: null })).toBe(false);
+  });
+
+  it('un usuario ilimitado nunca se bloquea', () => {
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: ilimitado })).toBe(false);
+  });
+
+  it('editar la reserva que ocupa el cupo no se bloquea a sí misma', () => {
+    expect(
+      bloqueaPorCupoAmigos({ esAmigos: true, quota: sinCupo, reservaEditadaConsumeCupo: true })
+    ).toBe(false);
+    // Pero una reserva NUEVA sí se bloquea con el mismo cupo agotado.
+    expect(
+      bloqueaPorCupoAmigos({ esAmigos: true, quota: sinCupo, reservaEditadaConsumeCupo: false })
+    ).toBe(true);
+  });
+
+  it('sin datos del cupo todavía no bloquea (el backend valida igual)', () => {
+    expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: null })).toBe(false);
   });
 });

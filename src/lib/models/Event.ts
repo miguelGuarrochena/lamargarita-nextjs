@@ -1,16 +1,24 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { BookingType } from '@/types';
-import { MOTIVOS, type Motivo } from '@/lib/amigosQuota';
+import { TIPOS_INVITADO, type TipoInvitado } from '@/lib/amigosQuota';
 
 export interface IEvent extends Document {
   title: string;
   notes?: string;
   booking: BookingType;
-  motivo?: Motivo;
+  /**
+   * Motivo/nombre de la reserva ("MG", "Navidad", ...). Es un dato libre del
+   * usuario y NO tiene nada que ver con el cupo: la lógica de cupo nunca lo
+   * lee ni lo escribe. Sin `enum` a propósito, para no invalidar los valores
+   * que ya existen en la base.
+   */
+  motivo?: string;
+  /** Tipo de invitado: lo único que decide si la reserva consume cupo. */
+  tipoInvitado?: TipoInvitado;
   pax?: number;
   start: Date;
   end: Date;
-  /** Año calendario al que imputa el cupo (solo reservas con motivo Amigos). */
+  /** Año calendario al que imputa el cupo (solo reservas de Amigos). */
   amigosYear?: number;
   /** Nº de cupo dentro del año. El índice único lo hace inviolable. */
   amigosSlot?: number;
@@ -31,7 +39,10 @@ const EventSchema = new Schema<IEvent>({
   },
   motivo: {
     type: String,
-    enum: MOTIVOS,
+  },
+  tipoInvitado: {
+    type: String,
+    enum: TIPOS_INVITADO,
   },
   pax: {
     type: Number,

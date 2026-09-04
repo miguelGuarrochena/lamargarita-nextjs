@@ -9,14 +9,15 @@ import { es } from 'date-fns/locale';
 import { useAuthStore, useCalendarStore, useUiStore } from '@/hooks';
 import { reservas } from '@/lib/reservas';
 import { specialEvents2026 } from '@/lib/specialDates2026';
-import { AmigosQuota, Event, BookingType, Motivo } from '@/types';
+import { AmigosQuota, Event, BookingType, TipoInvitado } from '@/types';
 import {
   CANCELACION_ANTICIPACION_MINIMA_HORAS,
-  MOTIVOS,
-  MOTIVO_AMIGOS,
+  TIPOS_INVITADO,
+  TIPO_AMIGOS,
+  bloqueaPorCupoAmigos,
   getReservaYear,
   puedeCancelarse,
-  requiresMotivo,
+  requiereTipoInvitado,
 } from '@/lib/amigosQuota';
 import { useAmigosQuota } from '@/hooks/useAmigosQuota';
 import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash, IconUsersGroup, IconAlertCircle } from '@tabler/icons-react';
@@ -44,20 +45,45 @@ const bookingColors: Record<string, string> = {
 };
 
 /**
- * Estado del cupo anual de Amigos. Es informativo, no una alerta: usa el mismo
- * lenguaje visual del formulario (radios, tipografía y colores de Mantine) y
- * solo se pone en tono de atención cuando efectivamente no queda cupo.
+ * Estado del cupo anual de Amigos: dice de entrada si la persona puede reservar
+ * o no. El detalle numérico queda como información secundaria.
+ *
+ * Solo se renderiza cuando el tipo de invitado es Amigos; para Familiar no existe.
  */
-const AmigosQuotaPanel = ({ quota, sinCupo }: { quota: AmigosQuota; sinCupo: boolean }) => {
-  const tono = sinCupo ? 'red' : 'blue';
+const AmigosQuotaPanel = ({
+  quota,
+  editandoLaQueOcupa,
+}: {
+  quota: AmigosQuota;
+  editandoLaQueOcupa: boolean;
+}) => {
+  const ilimitado = quota.limite === null;
+  const sinCupo = !ilimitado && quota.restantes === 0;
+  const tono = sinCupo ? 'orange' : 'teal';
 
-  const detalle = sinCupo
-    ? quota.limite === 0
-      ? 'No tenés habilitadas las reservas con motivo Amigos.'
-      : 'Ya usaste todos tus cupos: no podés crear otra reserva de Amigos este año.'
-    : quota.limite === null
-      ? `Llevás ${quota.usadas} este año.`
-      : `Te queda${quota.restantes === 1 ? '' : 'n'} ${quota.restantes} de ${quota.limite}.`;
+  const plural = (n: number) => (n === 1 ? '' : 's');
+
+  const titulo = ilimitado ? 'Cupo ilimitado' : sinCupo ? 'Sin cupo disponible' : 'Cupo disponible';
+
+  let detalle: string;
+  if (ilimitado) {
+    detalle = 'Podés realizar reservas de Amigos sin límite.';
+  } else if (!sinCupo) {
+    detalle = `Tenés ${quota.restantes} reserva${plural(quota.restantes!)} de Amigos disponible${plural(
+      quota.restantes!
+    )} para ${quota.year}.`;
+  } else if (quota.limite === 0) {
+    detalle = 'No tenés habilitadas las reservas de Amigos.';
+  } else {
+    // Redacción única: también vale cuando `usadas` supera al límite por
+    // reservas anteriores a esta restricción.
+    detalle = `Ya usaste tu cupo de reservas de Amigos para ${quota.year}.`;
+  }
+
+  // Al editar la propia reserva que ocupa el cupo, el estado real es "sin
+  // cupo", pero guardarla no está bloqueado: conviene decirlo.
+  const aclaracion =
+    sinCupo && editandoLaQueOcupa ? 'Estás editando esa misma reserva, podés guardarla.' : null;
 
   return (
     <Box
@@ -68,32 +94,29 @@ const AmigosQuotaPanel = ({ quota, sinCupo }: { quota: AmigosQuota; sinCupo: boo
         backgroundColor: `var(--mantine-color-${tono}-0)`,
       }}
     >
-      <Group justify="space-between" wrap="nowrap" gap="sm">
-        <Group gap="sm" wrap="nowrap">
-          <ThemeIcon variant="light" color={tono} size={34} radius="md">
-            {sinCupo ? <IconAlertCircle size={19} /> : <IconUsersGroup size={19} />}
+      <Group justify="space-between" wrap="nowrap" gap="sm" align="flex-start">
+        <Group gap="sm" wrap="nowrap" align="flex-start">
+          <ThemeIcon variant="light" color={tono} size={32} radius="md">
+            {sinCupo ? <IconAlertCircle size={18} /> : <IconUsersGroup size={18} />}
           </ThemeIcon>
           <Box>
             <Text size="sm" fw={600} lh={1.35}>
-              Cupo de Amigos {quota.year}
+              {titulo}
             </Text>
-            <Text size="xs" c="dimmed" lh={1.35}>
+            <Text size="xs" c="dimmed" lh={1.4}>
               {detalle}
             </Text>
+            {aclaracion && (
+              <Text size="xs" c="dimmed" fs="italic" lh={1.4} mt={2}>
+                {aclaracion}
+              </Text>
+            )}
           </Box>
         </Group>
 
-        {quota.limite === null ? (
-          <Text size="xs" fw={600} c={tono} style={{ whiteSpace: 'nowrap' }}>
-            Sin límite
-          </Text>
-        ) : (
-          <Text size="xl" fw={700} c={tono} lh={1} style={{ whiteSpace: 'nowrap' }}>
-            {quota.usadas}
-            <Text span size="sm" fw={500} c="dimmed">
-              {' / '}
-              {quota.limite}
-            </Text>
+        {!ilimitado && quota.limite! > 0 && (
+          <Text size="xs" c="dimmed" fw={500} mt={4} style={{ whiteSpace: 'nowrap' }}>
+            {quota.usadas} / {quota.limite}
           </Text>
         )}
       </Group>
@@ -114,14 +137,14 @@ export const CalendarModal = () => {
     start: new Date(),
     end: new Date(),
     booking: '',
-    motivo: '',
+    tipoInvitado: '',
     pax: '',
   });
 
   // Las marcas administrativas (feriado / vacaciones) no son reservas de una
-  // persona: no piden motivo ni consumen cupo.
-  const motivoAplica = requiresMotivo(formValues.booking);
-  const motivoFaltante = motivoAplica && formValues.motivo === '';
+  // persona: no piden tipo de invitado ni consumen cupo.
+  const tipoInvitadoAplica = requiereTipoInvitado(formValues.booking);
+  const tipoInvitadoFaltante = tipoInvitadoAplica && formValues.tipoInvitado === '';
 
   const reservaYear = useMemo(() => {
     try {
@@ -133,13 +156,26 @@ export const CalendarModal = () => {
 
   // El cupo es un concepto exclusivo de Amigos: para Familiar no se consulta ni
   // se muestra nada, y no se aplica ningún límite.
-  const esAmigos = motivoAplica && formValues.motivo === MOTIVO_AMIGOS;
-  const { quota } = useAmigosQuota(reservaYear, isDateModalOpen && esAmigos, activeEvent?.id);
+  const esAmigos = tipoInvitadoAplica && formValues.tipoInvitado === TIPO_AMIGOS;
 
-  // Único estado de "no queda cupo": lo comparten el aviso y el botón de
-  // guardar. Solo aplica a Amigos; Familiar nunca se bloquea por cupo.
-  // Es UX: el backend sigue siendo la fuente de verdad.
-  const sinCupoAmigos = esAmigos && !!quota && quota.limite !== null && quota.restantes === 0;
+  // El aviso muestra el uso REAL del año: una reserva de Amigos que ya existe
+  // cuenta siempre, incluso si es la que se está editando en este momento.
+  const { quota } = useAmigosQuota(reservaYear, isDateModalOpen && esAmigos);
+
+  // ...pero esa reserva no puede bloquearse a sí misma al guardar.
+  const reservaEditadaConsumeCupo =
+    !!activeEvent?.id &&
+    activeEvent.tipoInvitado === TIPO_AMIGOS &&
+    reservaYear !== null &&
+    getReservaYear(activeEvent.start) === reservaYear;
+
+  // Único estado de "no queda cupo": lo comparten el aviso y los dos botones
+  // (mobile y desktop). Es solo UX; el backend sigue siendo la fuente de verdad.
+  const sinCupoAmigos = bloqueaPorCupoAmigos({
+    esAmigos,
+    quota,
+    reservaEditadaConsumeCupo,
+  });
 
   const overlappingSpecials = useMemo(() => {
     const s = toDayValue(formValues.start);
@@ -159,7 +195,7 @@ export const CalendarModal = () => {
         start: new Date(activeEvent.start),
         end: new Date(activeEvent.end),
         booking: activeEvent.booking,
-        motivo: activeEvent.motivo || '',
+        tipoInvitado: activeEvent.tipoInvitado || '',
         pax: activeEvent.pax?.toString() || '',
       });
     }
@@ -199,7 +235,7 @@ export const CalendarModal = () => {
   // que la persona esté tocando en el formulario.
   const cancelacionEnPlazo =
     !activeEvent ||
-    !requiresMotivo(activeEvent.booking) ||
+    !requiereTipoInvitado(activeEvent.booking) ||
     puedeCancelarse(activeEvent.start);
 
   const onDelete = async () => {
@@ -221,13 +257,16 @@ export const CalendarModal = () => {
     setFormSubmitted(true);
 
     if (formValues.title.length <= 0) return;
-    if (motivoFaltante) return;
+    if (tipoInvitadoFaltante) return;
     if (sinCupoAmigos) return;
 
     const eventToSave: Event = {
       ...formValues,
       booking: formValues.booking as BookingType,
-      motivo: motivoAplica ? (formValues.motivo as Motivo) : undefined,
+      tipoInvitado: tipoInvitadoAplica ? (formValues.tipoInvitado as TipoInvitado) : undefined,
+      // Dato del usuario: el formulario no lo edita y el servidor lo ignora.
+      // Se arrastra solo para que el calendario lo siga mostrando sin recargar.
+      motivo: activeEvent?.motivo,
       pax: parseInt(formValues.pax) || 0,
       id: activeEvent?.id,
     };
@@ -387,21 +426,21 @@ export const CalendarModal = () => {
             />
           </Box>
 
-          {motivoAplica && (
+          {tipoInvitadoAplica && (
             <Box>
               <Text size="sm" fw={500} mb={5}>
-                Motivo <Text span c="red">*</Text>
+                Tipo de invitado <Text span c="red">*</Text>
               </Text>
               <Select
-                name="motivo"
-                value={formValues.motivo}
-                onChange={(value) => setFormValues({ ...formValues, motivo: value || '' })}
-                data={MOTIVOS.map((m) => ({ value: m, label: m }))}
-                placeholder="Seleccionar un motivo"
+                name="tipoInvitado"
+                value={formValues.tipoInvitado}
+                onChange={(value) => setFormValues({ ...formValues, tipoInvitado: value || '' })}
+                data={TIPOS_INVITADO.map((m) => ({ value: m, label: m }))}
+                placeholder="Seleccionar un tipo de invitado"
                 searchable={false}
                 clearable={false}
                 allowDeselect={false}
-                error={formSubmitted && motivoFaltante ? 'Elegí un motivo para la reserva' : null}
+                error={formSubmitted && tipoInvitadoFaltante ? 'Elegí el tipo de invitado' : null}
                 comboboxProps={{
                   zIndex: 2100,
                   withinPortal: true,
@@ -412,7 +451,9 @@ export const CalendarModal = () => {
             </Box>
           )}
 
-          {esAmigos && quota && <AmigosQuotaPanel quota={quota} sinCupo={sinCupoAmigos} />}
+          {esAmigos && quota && (
+            <AmigosQuotaPanel quota={quota} editandoLaQueOcupa={reservaEditadaConsumeCupo} />
+          )}
 
           <NumberInput
             label="Cantidad Personas"
@@ -438,7 +479,7 @@ export const CalendarModal = () => {
                 type="submit"
                 fullWidth
                 leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                disabled={(formSubmitted && (formValues.title.length === 0 || motivoFaltante)) || sinCupoAmigos}
+                disabled={(formSubmitted && (formValues.title.length === 0 || tipoInvitadoFaltante)) || sinCupoAmigos}
               >
                 {activeEvent?.id ? 'Modificar' : 'Guardar'}
               </Button>
@@ -509,7 +550,7 @@ export const CalendarModal = () => {
                 <Button
                   type="submit"
                   leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                  disabled={(formSubmitted && (formValues.title.length === 0 || motivoFaltante)) || sinCupoAmigos}
+                  disabled={(formSubmitted && (formValues.title.length === 0 || tipoInvitadoFaltante)) || sinCupoAmigos}
                 >
                   {activeEvent?.id ? 'Modificar' : 'Guardar'}
                 </Button>

@@ -6,9 +6,9 @@ import { ClientErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
 import { canManageEvent, isSystemAdminEvent, isValidMongoId } from '@/lib/eventOwnership';
 import {
   CANCELACION_ANTICIPACION_MINIMA_HORAS,
-  isMotivo,
+  isTipoInvitado,
   puedeCancelarse,
-  requiresMotivo,
+  requiereTipoInvitado,
 } from '@/lib/amigosQuota';
 import Swal from 'sweetalert2';
 
@@ -38,17 +38,17 @@ export const useCalendarStore = () => {
         return;
       }
 
-      // Motivo obligatorio (salvo feriados/vacaciones administrativos).
+      // TipoInvitado obligatorio (salvo feriados/vacaciones administrativos).
       // Es solo un atajo de UX: la validación que manda vive en el backend.
-      if (requiresMotivo(calendarEvent.booking) && !isMotivo(calendarEvent.motivo)) {
+      if (requiereTipoInvitado(calendarEvent.booking) && !isTipoInvitado(calendarEvent.tipoInvitado)) {
         ClientErrorHandler.logError(
-          new Error('Motivo validation failed'),
+          new Error('TipoInvitado validation failed'),
           'startSavingEvent - Validation',
           { calendarEvent }
         );
         Swal.fire(
           'Error de validación',
-          'Tenés que elegir un motivo para la reserva: Familiar o Amigos.',
+          'Tenés que elegir el tipo de invitado: Familiar o Amigos.',
           'error'
         );
         return;
@@ -232,7 +232,7 @@ export const useCalendarStore = () => {
 
     // Ventana de cancelación: mínimo 24 h de anticipación, sin excepciones.
     // Es un atajo de UX; el backend vuelve a validarlo antes de borrar nada.
-    if (requiresMotivo(activeEvent.booking) && !puedeCancelarse(activeEvent.start)) {
+    if (requiereTipoInvitado(activeEvent.booking) && !puedeCancelarse(activeEvent.start)) {
       ClientErrorHandler.logError(
         new Error('Cancellation window elapsed'),
         'startDeletingEvent - Validation',

@@ -73,12 +73,19 @@ Este proyecto fue migrado desde una aplicación React + Express.js manteniendo:
 - Funcionalidad completa del sistema de reservas
 - Compatibilidad con la base de datos existente
 
-## Motivo de reserva y cupo anual de "Amigos"
+## Tipo de invitado y cupo anual de "Amigos"
 
-Toda reserva de una persona exige un **Motivo**: `Familiar` o `Amigos`
-(los feriados y vacaciones que carga el admin quedan exentos).
+Dos campos distintos, que no hay que confundir:
 
-Las reservas con motivo **Amigos** tienen un **cupo por año calendario**
+| Campo | Qué es |
+|---|---|
+| `motivo` | Motivo/nombre de la reserva (`"MG"`, `"Navidad"`, ...). Dato libre del usuario. **No interviene en el cupo y la app nunca lo escribe.** |
+| `tipoInvitado` | `Familiar` o `Amigos`. **Es lo único que define el cupo.** |
+
+Toda reserva de una persona exige un **tipo de invitado** (los feriados y
+vacaciones que carga el admin quedan exentos).
+
+Las reservas de **Amigos** tienen un **cupo por año calendario**
 configurable por persona, en el campo `limiteAmigosAnual` de la colección
 `usuarios`:
 
@@ -86,16 +93,30 @@ configurable por persona, en el campo `limiteAmigosAnual` de la colección
 |---|---|
 | `1` | Default para toda persona nueva o sin configurar |
 | `4` | Máximo 4 reservas de Amigos por año |
-| `0` | No puede reservar con motivo Amigos |
+| `0` | No puede reservar Amigos |
 | `null` | Sin límite |
 
-Cuentan **todas** las reservas de Amigos del año que no estén canceladas,
-incluidas las **futuras** (una reserva de Amigos para octubre ya consume el cupo
-de ese año) y las que ya existían antes de esta funcionalidad, sin modificarlas
-ni migrarlas. El año de una reserva se deriva **siempre de su fecha de entrada**
-(`start`); `amigosYear` existe solo como clave del índice único de cupos y nunca
-se usa para contar. Las reservas `Familiar` son ilimitadas y nunca consumen
-cupo.
+El cálculo es exactamente:
+
+> cantidad de reservas con `tipoInvitado: "Amigos"` cuyo `start` cae en el año
+> consultado, y que no estén canceladas.
+
+Incluye las **futuras**: una reserva de Amigos para octubre ya consume el cupo de
+ese año desde que se crea. El año se deriva **siempre de `start`**; `amigosYear`
+existe solo como clave del índice único de cupos y nunca se usa para contar. Las
+reservas `Familiar` son ilimitadas y nunca consumen cupo.
+
+Las reservas anteriores al sistema de cupos **no tienen `tipoInvitado` y quedan
+fuera del cálculo**: no cuentan, no se modifican y no se clasifican. Es
+intencional — no hay forma confiable de saber si fueron con familia o con
+amigos, y adivinarlo sería inventar un dato. El contador arranca en `0` sobre
+las reservas nuevas.
+
+Para ver el estado de cupo de una persona (solo lectura):
+
+```bash
+node scripts/set-amigos-limits.mjs --cupo "GG"
+```
 
 ### Cancelación: 24 horas de anticipación
 

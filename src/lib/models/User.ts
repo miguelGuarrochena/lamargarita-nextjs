@@ -8,7 +8,7 @@ export interface IUser extends Document {
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   /**
-   * Cupo anual de reservas con motivo "Amigos" para esta persona.
+   * Cupo anual de reservas con tipoInvitado "Amigos" para esta persona.
    * Número >= 0 -> ese máximo por año calendario (0 = no puede reservar Amigos).
    * `null` -> sin límite.
    * Ausente -> se aplica DEFAULT_LIMITE_AMIGOS_ANUAL.

@@ -2,20 +2,20 @@
  * Puente entre la regla de negocio pura (`amigosQuota.ts`) y Mongo.
  *
  * Centraliza el guardado de reservas para que POST y PUT compartan exactamente
- * la misma validación de motivo y de cupo anual de Amigos.
+ * la misma validación de tipoInvitado y de cupo anual de Amigos.
  */
 import mongoose from 'mongoose';
 import Event, { IEvent } from '@/lib/models/Event';
 import User from '@/lib/models/User';
 import {
-  MOTIVO_AMIGOS,
+  TIPO_AMIGOS,
   assertPuedeCancelar,
   getReservaYear,
-  parseMotivo,
+  parseTipoInvitado,
   resolveLimiteAmigos,
   saveWithAmigosSlot,
   type AmigosUsage,
-  type Motivo,
+  type TipoInvitado,
 } from '@/lib/amigosQuota';
 
 /** Datos de reserva tal como llegan del cliente. */
@@ -26,7 +26,7 @@ export type ReservaInput = Record<string, unknown>;
  * edición debe volver a pedir cupo. `IEvent` lo cumple estructuralmente.
  */
 export interface ReservaExistente {
-  motivo?: string;
+  tipoInvitado?: string;
   booking?: string;
   start: Date | string;
   amigosYear?: number;
@@ -37,6 +37,9 @@ export interface ReservaExistente {
 /** Campos que el cliente nunca puede setear a mano: los controla el servidor. */
 const CAMPOS_CONTROLADOS_POR_SERVIDOR = [
   'user',
+  'tipoInvitado',
+  // `motivo` es el nombre/motivo que puso el usuario ("MG", "Navidad", ...).
+  // No lo escribimos nunca: se preserva tal cual está en la base.
   'motivo',
   'amigosYear',
   'amigosSlot',
@@ -46,7 +49,7 @@ const CAMPOS_CONTROLADOS_POR_SERVIDOR = [
 ];
 
 /**
- * Deja pasar solo lo que el cliente puede definir. `motivo` se valida aparte y
+ * Deja pasar solo lo que el cliente puede definir. `tipoInvitado` se valida aparte y
  * se reinyecta ya normalizado; `amigosYear`/`amigosSlot` los decide el servidor.
  */
 function sanitizeEventInput(raw: ReservaInput): ReservaInput {
@@ -71,10 +74,17 @@ export async function getLimiteAmigos(userId: string): Promise<number | null> {
 /**
  * Uso del cupo de Amigos de una persona en un año.
  *
- * Cuenta TODA reserva con motivo Amigos de ese año, tenga o no `amigosSlot`.
- * Las reservas anteriores a esta implementación (o cargadas por fuera del
- * flujo) no tienen cupo asignado y aun así consumen límite; si contáramos solo
- * los slots, se colarían reservas de más.
+ * El cálculo es exactamente: reservas con `tipoInvitado: "Amigos"` cuyo `start`
+ * cae en el año consultado. Nada más entra en la cuenta.
+ *
+ * Las reservas anteriores al sistema de cupos NO tienen `tipoInvitado`, así que
+ * quedan naturalmente afuera: no cuentan y no se tocan. Es a propósito — no hay
+ * forma confiable de saber si fueron con familia o con amigos, y deducirlo de
+ * `motivo`/`title`/`notes`/`booking` sería inventar un dato. El contador
+ * arranca en 0 sobre las reservas nuevas, sin ninguna lógica especial.
+ *
+ * Se cuentan tengan o no `amigosSlot`: el slot es solo la clave del índice
+ * único, y una reserva de Amigos cargada por fuera del flujo no lo tiene.
  *
  * El año SIEMPRE se deriva del `start` de la reserva. `amigosYear` existe solo
  * como clave del índice único de cupos: si se lo usara para contar, sería una
@@ -92,7 +102,7 @@ async function readAmigosUsage(
 ): Promise<AmigosUsage> {
   const filter: Record<string, unknown> = {
     user: new mongoose.Types.ObjectId(userId),
-    motivo: MOTIVO_AMIGOS,
+    tipoInvitado: TIPO_AMIGOS,
   };
   if (excludeEventId) filter._id = { $ne: new mongoose.Types.ObjectId(excludeEventId) };
 
@@ -137,17 +147,17 @@ export async function getAmigosQuotaState(
   };
 }
 
-/** Crea una reserva aplicando motivo obligatorio + cupo anual de Amigos. */
+/** Crea una reserva aplicando tipoInvitado obligatorio + cupo anual de Amigos. */
 export async function createReservation(
   userId: string,
   rawInput: ReservaInput
 ): Promise<IEvent> {
   const input = sanitizeEventInput(rawInput);
-  const motivo = parseMotivo({ booking: input.booking, motivo: rawInput.motivo });
+  const tipoInvitado = parseTipoInvitado({ booking: input.booking, tipoInvitado: rawInput.tipoInvitado });
 
-  if (motivo !== MOTIVO_AMIGOS) {
+  if (tipoInvitado !== TIPO_AMIGOS) {
     // Familiar (o marca administrativa): no toca el cupo.
-    return await new Event({ ...input, motivo, user: userId }).save();
+    return await new Event({ ...input, tipoInvitado, user: userId }).save();
   }
 
   const year = getReservaYear(input.start as Date | string);
@@ -161,7 +171,7 @@ export async function createReservation(
     save: (slot) =>
       new Event({
         ...input,
-        motivo,
+        tipoInvitado,
         user: userId,
         amigosYear: year,
         amigosSlot: slot,
@@ -177,13 +187,13 @@ export async function createReservation(
  */
 function assertNoLiberaCupoFueraDePlazo(
   existing: ReservaExistente,
-  nuevoMotivo: Motivo | undefined,
+  nuevoMotivo: TipoInvitado | undefined,
   nuevoYear: number | null
 ): void {
-  if (existing.motivo !== MOTIVO_AMIGOS) return;
+  if (existing.tipoInvitado !== TIPO_AMIGOS) return;
 
   const yearActual = getReservaYear(existing.start);
-  const liberaCupo = nuevoMotivo !== MOTIVO_AMIGOS || nuevoYear !== yearActual;
+  const liberaCupo = nuevoMotivo !== TIPO_AMIGOS || nuevoYear !== yearActual;
   if (!liberaCupo) return;
 
   assertPuedeCancelar({ start: existing.start, booking: existing.booking });
@@ -203,30 +213,30 @@ export async function updateReservation(
   existing: ReservaExistente
 ): Promise<IEvent | null> {
   const input = sanitizeEventInput(rawInput);
-  const motivo = parseMotivo({ booking: input.booking, motivo: rawInput.motivo });
+  const tipoInvitado = parseTipoInvitado({ booking: input.booking, tipoInvitado: rawInput.tipoInvitado });
 
-  if (motivo !== MOTIVO_AMIGOS) {
+  if (tipoInvitado !== TIPO_AMIGOS) {
     // Familiar o marca administrativa: libera el cupo que pudiera tener, así
     // que pasa por la misma ventana de 24 h que una cancelación.
-    assertNoLiberaCupoFueraDePlazo(existing, motivo, null);
+    assertNoLiberaCupoFueraDePlazo(existing, tipoInvitado, null);
 
     const update: Record<string, Record<string, unknown>> = {
       $set: { ...input, user: userId },
       $unset: { amigosYear: 1, amigosSlot: 1 },
     };
-    if (motivo) {
-      update.$set.motivo = motivo;
+    if (tipoInvitado) {
+      update.$set.tipoInvitado = tipoInvitado;
     } else {
-      update.$unset.motivo = 1;
+      update.$unset.tipoInvitado = 1;
     }
     return await Event.findByIdAndUpdate(eventId, update, { new: true });
   }
 
   const year = getReservaYear(input.start as Date | string);
-  assertNoLiberaCupoFueraDePlazo(existing, MOTIVO_AMIGOS, year);
+  assertNoLiberaCupoFueraDePlazo(existing, TIPO_AMIGOS, year);
 
   const mantieneSlot =
-    existing.motivo === MOTIVO_AMIGOS &&
+    existing.tipoInvitado === TIPO_AMIGOS &&
     existing.amigosYear === year &&
     typeof existing.amigosSlot === 'number' &&
     String(existing.user) === String(userId);
@@ -234,7 +244,7 @@ export async function updateReservation(
   if (mantieneSlot) {
     return await Event.findByIdAndUpdate(
       eventId,
-      { $set: { ...input, motivo, user: userId, amigosYear: year, amigosSlot: existing.amigosSlot } },
+      { $set: { ...input, tipoInvitado, user: userId, amigosYear: year, amigosSlot: existing.amigosSlot } },
       { new: true }
     );
   }
@@ -249,7 +259,7 @@ export async function updateReservation(
     save: (slot) =>
       Event.findByIdAndUpdate(
         eventId,
-        { $set: { ...input, motivo, user: userId, amigosYear: year, amigosSlot: slot } },
+        { $set: { ...input, tipoInvitado, user: userId, amigosYear: year, amigosSlot: slot } },
         { new: true, runValidators: true }
       ),
   });
@@ -268,4 +278,4 @@ export async function cancelReservation(
   await Event.findByIdAndDelete(eventId);
 }
 
-export type { Motivo };
+export type { TipoInvitado };

@@ -8,7 +8,7 @@ import { createReservation } from '@/lib/amigosQuotaDb';
 import {
   AmigosQuotaExceededError,
   AmigosSlotContentionError,
-  MotivoRequeridoError,
+  TipoInvitadoRequeridoError,
 } from '@/lib/amigosQuota';
 
 // Simple date validation function for server-side use
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // El motivo obligatorio y el cupo anual de Amigos se resuelven en el
+    // El tipoInvitado obligatorio y el cupo anual de Amigos se resuelven en el
     // servicio, que es el mismo que usa PUT /api/events/[id].
     const savedEvent = await createReservation(decoded.uid, eventData);
 
@@ -172,11 +172,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Reglas de negocio de la reserva (motivo obligatorio / cupo de Amigos)
-    if (error instanceof MotivoRequeridoError || error instanceof AmigosQuotaExceededError) {
+    // Reglas de negocio de la reserva (tipoInvitado obligatorio / cupo de Amigos)
+    if (error instanceof TipoInvitadoRequeridoError || error instanceof AmigosQuotaExceededError) {
       return NextResponse.json(
         { ok: false, msg: error.message, error: error.code, code: error.code },
-        { status: error instanceof MotivoRequeridoError ? 400 : 409 }
+        { status: error instanceof TipoInvitadoRequeridoError ? 400 : 409 }
       );
     }
 

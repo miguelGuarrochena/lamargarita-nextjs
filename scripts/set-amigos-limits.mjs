@@ -8,6 +8,8 @@
  *   node scripts/set-amigos-limits.mjs --set "GG=4"         # cambia una persona
  *   node scripts/set-amigos-limits.mjs --set "Juan Pablo=null"
  *   node scripts/set-amigos-limits.mjs --set "Ana=0"
+ *   node scripts/set-amigos-limits.mjs --cupo "GG"          # diagnóstico (solo lectura)
+ *
  *
  * El límite también se puede cambiar por API: PATCH /api/admin/amigos-limits.
  * Nunca hace falta tocar código para modificar un cupo.
@@ -72,6 +74,50 @@ async function main() {
   const args = process.argv.slice(2);
   const soloListar = args.includes('--list');
   const setIndex = args.indexOf('--set');
+  const cupoIndex = args.indexOf('--cupo');
+
+  // Diagnóstico de solo lectura: muestra exactamente qué reservas está viendo
+  // el cálculo del cupo para una persona. Sirve para detectar reservas que
+  // conceptualmente son de Amigos pero no tienen el campo `tipoInvitado` guardado
+  // (creadas antes de esta funcionalidad): esas no pueden contarse.
+  if (cupoIndex !== -1) {
+    const name = args[cupoIndex + 1];
+    if (!name) throw new Error('Formato esperado: --cupo "Nombre"');
+
+    const persona = await User.findOne({ name }).select('name limiteAmigosAnual').lean();
+    if (!persona) throw new Error(`No se encontró la persona "${name}".`);
+
+    const anio = new Date().getFullYear();
+    const eventos = await mongoose.connection.db
+      .collection('eventos')
+      .find({ user: persona._id })
+      .sort({ start: 1 })
+      .toArray();
+
+    console.log(`\n👤 ${persona.name} — límite: ${describe(persona.limiteAmigosAnual)}`);
+    console.log(`📅 Reservas en la base (${eventos.length}):\n`);
+    for (const e of eventos) {
+      const anioReserva = new Date(e.start).getFullYear();
+      const tipoInvitado = e.tipoInvitado ?? '— SIN MOTIVO —';
+      const cuenta = e.tipoInvitado === 'Amigos' && anioReserva === anio ? '✅ cuenta' : '  ';
+      console.log(
+        `   ${cuenta}  ${new Date(e.start).toISOString().slice(0, 10)}  ${String(anioReserva)}  ` +
+          `tipoInvitado=${tipoInvitado}  slot=${e.amigosSlot ?? '-'}  "${e.title}"`
+      );
+    }
+
+    const usadas = eventos.filter(
+      (e) => e.tipoInvitado === 'Amigos' && new Date(e.start).getFullYear() === anio
+    ).length;
+    console.log(`\n📊 Cupo ${anio}: usadas=${usadas} / límite=${describe(persona.limiteAmigosAnual)}`);
+    console.log(
+      '\n💡 Si ves una reserva de Amigos con "— SIN MOTIVO —", es anterior a esta\n' +
+        '   funcionalidad: no tiene cómo saberse que era de Amigos y no cuenta.\n'
+    );
+
+    await mongoose.connection.close();
+    return;
+  }
 
   if (setIndex !== -1) {
     const expr = args[setIndex + 1];

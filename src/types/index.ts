@@ -1,4 +1,4 @@
-import type { Motivo } from '@/lib/amigosQuota';
+import type { TipoInvitado } from '@/lib/amigosQuota';
 
 export interface User {
   uid: string;
@@ -16,8 +16,16 @@ export interface CalendarEvent {
   title: string;
   notes?: string;
   booking: BookingType;
-  /** Familiar | Amigos. Obligatorio salvo en marcas administrativas (FR/VC). */
-  motivo?: Motivo;
+  /**
+   * Motivo/nombre de la reserva ("MG", "Navidad", ...). Dato libre del usuario:
+   * no interviene en el cupo y el formulario no lo edita.
+   */
+  motivo?: string;
+  /**
+   * Tipo de invitado: Familiar | Amigos. Es lo único que define el cupo.
+   * Obligatorio salvo en marcas administrativas (FR/VC).
+   */
+  tipoInvitado?: TipoInvitado;
   pax?: number;
   start: Date;
   end: Date;
@@ -29,9 +37,9 @@ export type Event = CalendarEvent;
 
 export type BookingType = 'CT' | 'PA' | 'PR' | 'CS' | 'NC' | 'FL' | 'FR' | 'VC';
 
-export type { Motivo } from '@/lib/amigosQuota';
+export type { TipoInvitado } from '@/lib/amigosQuota';
 
-/** Estado del cupo anual de reservas con motivo Amigos. */
+/** Estado del cupo anual de reservas de Amigos. */
 export interface AmigosQuota {
   year: number;
   /** `null` = sin límite. */

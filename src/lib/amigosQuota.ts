@@ -1,17 +1,17 @@
 /**
- * Reglas de negocio del campo "Motivo" y del cupo anual de reservas de Amigos.
+ * Reglas de negocio del campo "TipoInvitado" y del cupo anual de reservas de Amigos.
  *
  * Este módulo es puro: no importa mongoose ni nada de Next. Toda la interacción
  * con la base se inyecta desde `amigosQuotaDb.ts`, para que la regla se pueda
  * testear (incluida la carrera concurrente) sin levantar una DB.
  */
 
-export const MOTIVO_FAMILIAR = 'Familiar';
-export const MOTIVO_AMIGOS = 'Amigos';
+export const TIPO_FAMILIAR = 'Familiar';
+export const TIPO_AMIGOS = 'Amigos';
 
-export const MOTIVOS = [MOTIVO_FAMILIAR, MOTIVO_AMIGOS] as const;
+export const TIPOS_INVITADO = [TIPO_FAMILIAR, TIPO_AMIGOS] as const;
 
-export type Motivo = (typeof MOTIVOS)[number];
+export type TipoInvitado = (typeof TIPOS_INVITADO)[number];
 
 /**
  * Cupo anual de Amigos para una persona que no tiene configuración propia.
@@ -21,9 +21,9 @@ export const DEFAULT_LIMITE_AMIGOS_ANUAL = 1;
 
 /**
  * Tipos de reserva que son marcas administrativas del calendario (feriados y
- * vacaciones) y no reservas de personas: no piden motivo ni consumen cupo.
+ * vacaciones) y no reservas de personas: no piden tipoInvitado ni consumen cupo.
  */
-const BOOKINGS_SIN_MOTIVO = new Set(['FR', 'VC']);
+const BOOKINGS_SIN_TIPO_INVITADO = new Set(['FR', 'VC']);
 
 /** Zona horaria de referencia para decidir a qué año calendario pertenece una reserva. */
 export const RESERVA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
@@ -33,17 +33,17 @@ export const CANCELACION_ANTICIPACION_MINIMA_HORAS = 24;
 
 const MS_POR_HORA = 60 * 60 * 1000;
 
-export function isMotivo(value: unknown): value is Motivo {
-  return typeof value === 'string' && (MOTIVOS as readonly string[]).includes(value);
+export function isTipoInvitado(value: unknown): value is TipoInvitado {
+  return typeof value === 'string' && (TIPOS_INVITADO as readonly string[]).includes(value);
 }
 
-export function requiresMotivo(booking: unknown): boolean {
-  return !BOOKINGS_SIN_MOTIVO.has(String(booking));
+export function requiereTipoInvitado(booking: unknown): boolean {
+  return !BOOKINGS_SIN_TIPO_INVITADO.has(String(booking));
 }
 
 /** ¿Esta reserva consume cupo del límite anual de Amigos? */
-export function consumesAmigosQuota(event: { booking?: unknown; motivo?: unknown }): boolean {
-  return requiresMotivo(event.booking) && event.motivo === MOTIVO_AMIGOS;
+export function consumesAmigosQuota(event: { booking?: unknown; tipoInvitado?: unknown }): boolean {
+  return requiereTipoInvitado(event.booking) && event.tipoInvitado === TIPO_AMIGOS;
 }
 
 /**
@@ -103,11 +103,11 @@ export function puedeCancelarse(start: Date | string | number, now: Date = new D
   return horasHastaInicio(start, now) >= CANCELACION_ANTICIPACION_MINIMA_HORAS;
 }
 
-export class MotivoRequeridoError extends Error {
-  readonly code = 'MOTIVO_REQUERIDO';
-  constructor(message = 'Tenés que elegir un motivo para la reserva: Familiar o Amigos.') {
+export class TipoInvitadoRequeridoError extends Error {
+  readonly code = 'TIPO_INVITADO_REQUERIDO';
+  constructor(message = 'Tenés que elegir el tipo de invitado: Familiar o Amigos.') {
     super(message);
-    this.name = 'MotivoRequeridoError';
+    this.name = 'TipoInvitadoRequeridoError';
   }
 }
 
@@ -120,8 +120,11 @@ export class AmigosQuotaExceededError extends Error {
   constructor(params: { limite: number; usadas: number; year: number }) {
     super(
       params.limite === 0
-        ? `No tenés habilitadas reservas con motivo Amigos.`
-        : `Ya usaste ${params.usadas} de ${params.limite} reserva${params.limite === 1 ? '' : 's'} con motivo Amigos para ${params.year}. Cancelá una reserva existente para liberar el cupo.`
+        ? 'No tenés habilitadas las reservas de Amigos.'
+        : // Redacción que no se rompe cuando `usadas` supera al límite, que es
+          // lo que pasa con reservas anteriores a esta restricción.
+          `Ya usaste tu cupo de reservas de Amigos para ${params.year} ` +
+          `(${params.usadas} de ${params.limite}). Cancelá una reserva existente para liberar cupo.`
     );
     this.name = 'AmigosQuotaExceededError';
     this.limite = params.limite;
@@ -154,13 +157,13 @@ export class AmigosSlotContentionError extends Error {
 }
 
 /**
- * Valida el motivo recibido del cliente.
+ * Valida el tipoInvitado recibido del cliente.
  * Devuelve `undefined` para reservas administrativas (feriado/vacaciones).
  */
-export function parseMotivo(input: { booking?: unknown; motivo?: unknown }): Motivo | undefined {
-  if (!requiresMotivo(input.booking)) return undefined;
-  if (!isMotivo(input.motivo)) throw new MotivoRequeridoError();
-  return input.motivo;
+export function parseTipoInvitado(input: { booking?: unknown; tipoInvitado?: unknown }): TipoInvitado | undefined {
+  if (!requiereTipoInvitado(input.booking)) return undefined;
+  if (!isTipoInvitado(input.tipoInvitado)) throw new TipoInvitadoRequeridoError();
+  return input.tipoInvitado;
 }
 
 /**
@@ -168,20 +171,46 @@ export function parseMotivo(input: { booking?: unknown; motivo?: unknown }): Mot
  *
  * Los feriados y vacaciones que carga el admin (FR/VC) son marcas del
  * calendario, no reservas de una persona: no consumen cupo y quedan fuera de
- * la regla, igual que quedan fuera del motivo obligatorio.
+ * la regla, igual que quedan fuera del tipoInvitado obligatorio.
  */
 export function assertPuedeCancelar(params: {
   start: Date | string | number;
   booking?: unknown;
   now?: Date;
 }): void {
-  if (!requiresMotivo(params.booking)) return;
+  if (!requiereTipoInvitado(params.booking)) return;
 
   const now = params.now ?? new Date();
   // Mismo criterio exacto que usa el frontend para habilitar el botón.
   if (!puedeCancelarse(params.start, now)) {
     throw new CancelacionFueraDePlazoError(horasHastaInicio(params.start, now));
   }
+}
+
+/**
+ * ¿El formulario debe bloquear el guardado por falta de cupo?
+ *
+ * Única fuente de verdad para el aviso y para los dos botones (mobile y
+ * desktop). Es solo UX: el backend valida igual.
+ */
+export function bloqueaPorCupoAmigos(params: {
+  /** El tipoInvitado elegido es Amigos. Con Familiar nunca se bloquea. */
+  esAmigos: boolean;
+  quota: { limite: number | null; restantes: number | null } | null;
+  /**
+   * Se está editando una reserva que YA ocupa un cupo de ese mismo año: no
+   * puede bloquearse a sí misma.
+   */
+  reservaEditadaConsumeCupo?: boolean;
+}): boolean {
+  const { esAmigos, quota, reservaEditadaConsumeCupo = false } = params;
+
+  if (!esAmigos) return false;
+  if (!quota) return false; // sin datos del cupo no bloqueamos
+  if (quota.limite === null) return false; // ilimitado
+  if (reservaEditadaConsumeCupo) return false;
+
+  return quota.restantes === 0;
 }
 
 /** Uso del cupo anual de una persona en un año concreto. */
