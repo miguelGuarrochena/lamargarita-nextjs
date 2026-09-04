@@ -5,6 +5,13 @@ import '@/lib/models/User'; // Ensure User schema is registered
 import { validateJWT } from '@/lib/middleware';
 import { canManageEventOnServer } from '@/lib/eventOwnership';
 import { ApiErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
+import { cancelReservation, updateReservation } from '@/lib/amigosQuotaDb';
+import {
+  AmigosQuotaExceededError,
+  AmigosSlotContentionError,
+  CancelacionFueraDePlazoError,
+  MotivoRequeridoError,
+} from '@/lib/amigosQuota';
 
 // Simple date validation function for server-side use
 const isValidDate = (date: any): boolean => {
@@ -189,11 +196,9 @@ export async function PUT(
       );
     }
 
-    const updatedEvent = await Event.findByIdAndUpdate(
-      eventId,
-      { ...eventData, user: decoded.uid },
-      { new: true }
-    );
+    // Mismo servicio que POST: valida el motivo y reserva/libera el cupo anual
+    // de Amigos según cómo quede la reserva después de la edición.
+    const updatedEvent = await updateReservation(decoded.uid, eventId, eventData, event);
 
     return NextResponse.json({
       ok: true,
@@ -216,6 +221,29 @@ export async function PUT(
           error: errorResponse.technicalMessage
         },
         { status: errorResponse.statusCode }
+      );
+    }
+
+    // Reglas de negocio de la reserva (motivo obligatorio / cupo de Amigos /
+    // ventana de cancelación)
+    if (error instanceof MotivoRequeridoError || error instanceof AmigosQuotaExceededError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: error instanceof MotivoRequeridoError ? 400 : 409 }
+      );
+    }
+
+    if (error instanceof CancelacionFueraDePlazoError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: 409 }
+      );
+    }
+
+    if (error instanceof AmigosSlotContentionError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: 503 }
       );
     }
 
@@ -347,7 +375,9 @@ export async function DELETE(
       );
     }
 
-    await Event.findByIdAndDelete(eventId);
+    // La cancelación exige 24 h de anticipación; el servicio la valida y recién
+    // ahí borra. Al borrarse, el cupo anual de Amigos queda libre.
+    await cancelReservation(eventId, event);
 
     return NextResponse.json({ ok: true });
 
@@ -367,6 +397,14 @@ export async function DELETE(
           error: errorResponse.technicalMessage
         },
         { status: errorResponse.statusCode }
+      );
+    }
+
+    // Cancelación fuera de la ventana de 24 h
+    if (error instanceof CancelacionFueraDePlazoError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: 409 }
       );
     }
 

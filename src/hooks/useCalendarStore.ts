@@ -4,6 +4,12 @@ import { useCalendarStore as useCalendarStoreZustand } from '@/stores/useCalenda
 import { useAuthStore as useAuthStoreZustand } from '@/stores/useAuthStore';
 import { ClientErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
 import { canManageEvent, isSystemAdminEvent, isValidMongoId } from '@/lib/eventOwnership';
+import {
+  CANCELACION_ANTICIPACION_MINIMA_HORAS,
+  isMotivo,
+  puedeCancelarse,
+  requiresMotivo,
+} from '@/lib/amigosQuota';
 import Swal from 'sweetalert2';
 
 export const useCalendarStore = () => {
@@ -29,6 +35,22 @@ export const useCalendarStore = () => {
           { calendarEvent }
         );
         Swal.fire('Error de validación', userMessage, 'error');
+        return;
+      }
+
+      // Motivo obligatorio (salvo feriados/vacaciones administrativos).
+      // Es solo un atajo de UX: la validación que manda vive en el backend.
+      if (requiresMotivo(calendarEvent.booking) && !isMotivo(calendarEvent.motivo)) {
+        ClientErrorHandler.logError(
+          new Error('Motivo validation failed'),
+          'startSavingEvent - Validation',
+          { calendarEvent }
+        );
+        Swal.fire(
+          'Error de validación',
+          'Tenés que elegir un motivo para la reserva: Familiar o Amigos.',
+          'error'
+        );
         return;
       }
 
@@ -205,6 +227,22 @@ export const useCalendarStore = () => {
         { activeEvent }
       );
       Swal.fire('Error de validación', 'No se puede eliminar este evento', 'error');
+      return false;
+    }
+
+    // Ventana de cancelación: mínimo 24 h de anticipación, sin excepciones.
+    // Es un atajo de UX; el backend vuelve a validarlo antes de borrar nada.
+    if (requiresMotivo(activeEvent.booking) && !puedeCancelarse(activeEvent.start)) {
+      ClientErrorHandler.logError(
+        new Error('Cancellation window elapsed'),
+        'startDeletingEvent - Validation',
+        { activeEvent }
+      );
+      Swal.fire(
+        'No se puede cancelar',
+        `Las reservas solo pueden cancelarse con al menos ${CANCELACION_ANTICIPACION_MINIMA_HORAS} horas de anticipación.`,
+        'error'
+      );
       return false;
     }
 

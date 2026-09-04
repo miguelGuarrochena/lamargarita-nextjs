@@ -7,7 +7,7 @@ interface CalendarEventProps {
 }
 
 export const CalendarEvent = ({ event }: CalendarEventProps) => {
-  const { title, user, pax, notes, booking } = event;
+  const { title, user, pax, notes, booking, motivo } = event;
 
   return (
     <div>
@@ -37,6 +37,7 @@ export const CalendarEvent = ({ event }: CalendarEventProps) => {
       </span>
       <div>
         <small> Personas: {pax}</small>
+        {motivo && <small> | Motivo: {motivo}</small>}
       </div>
       {notes && <div>{notes}</div>}
     </div>

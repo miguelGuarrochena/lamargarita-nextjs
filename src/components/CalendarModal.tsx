@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert } from '@mantine/core';
+import { Modal, TextInput, Textarea, Select, NumberInput, Button, Group, Stack, Text, Box, Flex, Alert, Tooltip } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -9,8 +9,17 @@ import { es } from 'date-fns/locale';
 import { useAuthStore, useCalendarStore, useUiStore } from '@/hooks';
 import { reservas } from '@/lib/reservas';
 import { specialEvents2026 } from '@/lib/specialDates2026';
-import { Event, BookingType } from '@/types';
-import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash } from '@tabler/icons-react';
+import { Event, BookingType, Motivo } from '@/types';
+import {
+  CANCELACION_ANTICIPACION_MINIMA_HORAS,
+  MOTIVOS,
+  MOTIVO_AMIGOS,
+  getReservaYear,
+  puedeCancelarse,
+  requiresMotivo,
+} from '@/lib/amigosQuota';
+import { useAmigosQuota } from '@/hooks/useAmigosQuota';
+import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash, IconUsersGroup } from '@tabler/icons-react';
 import { confirmDeleteReservation } from '@/hooks/useCalendarActionButtons';
 import { canManageEvent } from '@/lib/eventOwnership';
 import { scheduleUiLockRelease } from '@/lib/releaseUiLocks';
@@ -47,8 +56,24 @@ export const CalendarModal = () => {
     start: new Date(),
     end: new Date(),
     booking: '',
+    motivo: '',
     pax: '',
   });
+
+  // Las marcas administrativas (feriado / vacaciones) no son reservas de una
+  // persona: no piden motivo ni consumen cupo.
+  const motivoAplica = requiresMotivo(formValues.booking);
+  const motivoFaltante = motivoAplica && formValues.motivo === '';
+
+  const reservaYear = useMemo(() => {
+    try {
+      return getReservaYear(formValues.start);
+    } catch {
+      return null;
+    }
+  }, [formValues.start]);
+
+  const { quota } = useAmigosQuota(reservaYear, isDateModalOpen && motivoAplica);
 
   const overlappingSpecials = useMemo(() => {
     const s = toDayValue(formValues.start);
@@ -68,6 +93,7 @@ export const CalendarModal = () => {
         start: new Date(activeEvent.start),
         end: new Date(activeEvent.end),
         booking: activeEvent.booking,
+        motivo: activeEvent.motivo || '',
         pax: activeEvent.pax?.toString() || '',
       });
     }
@@ -103,9 +129,16 @@ export const CalendarModal = () => {
 
   const canDelete = !!activeEvent?.id && canManageEvent(activeEvent, user);
 
+  // La ventana de cancelación se mide sobre la reserva guardada, no sobre lo
+  // que la persona esté tocando en el formulario.
+  const cancelacionEnPlazo =
+    !activeEvent ||
+    !requiresMotivo(activeEvent.booking) ||
+    puedeCancelarse(activeEvent.start);
+
   const onDelete = async () => {
     const eventToDelete = activeEvent;
-    if (!eventToDelete?.id) return;
+    if (!eventToDelete?.id || !cancelacionEnPlazo) return;
 
     closeEditModalOnly();
     const deleted = await confirmDeleteReservation(
@@ -122,10 +155,12 @@ export const CalendarModal = () => {
     setFormSubmitted(true);
 
     if (formValues.title.length <= 0) return;
+    if (motivoFaltante) return;
 
     const eventToSave: Event = {
       ...formValues,
       booking: formValues.booking as BookingType,
+      motivo: motivoAplica ? (formValues.motivo as Motivo) : undefined,
       pax: parseInt(formValues.pax) || 0,
       id: activeEvent?.id,
     };
@@ -285,6 +320,51 @@ export const CalendarModal = () => {
             />
           </Box>
 
+          {motivoAplica && (
+            <Box>
+              <Text size="sm" fw={500} mb={5}>
+                Motivo <Text span c="red">*</Text>
+              </Text>
+              <Select
+                name="motivo"
+                value={formValues.motivo}
+                onChange={(value) => setFormValues({ ...formValues, motivo: value || '' })}
+                data={MOTIVOS.map((m) => ({ value: m, label: m }))}
+                placeholder="Seleccionar un motivo"
+                searchable={false}
+                clearable={false}
+                allowDeselect={false}
+                error={formSubmitted && motivoFaltante ? 'Elegí un motivo para la reserva' : null}
+                comboboxProps={{
+                  zIndex: 2100,
+                  withinPortal: true,
+                  position: 'bottom-start',
+                  middlewares: { flip: true, shift: true },
+                }}
+              />
+            </Box>
+          )}
+
+          {motivoAplica && formValues.motivo === MOTIVO_AMIGOS && quota && (
+            <Alert
+              variant="light"
+              color={quota.restantes === 0 ? 'red' : 'blue'}
+              icon={<IconUsersGroup size={18} />}
+              radius="md"
+            >
+              <Text size="sm">
+                {quota.limite === null
+                  ? `No tenés límite de reservas con motivo Amigos. Llevás ${quota.usadas} en ${quota.year}.`
+                  : quota.limite === 0
+                  ? 'No tenés habilitadas reservas con motivo Amigos.'
+                  : `Reservas Amigos ${quota.year}: ${quota.usadas} de ${quota.limite} usada${quota.usadas === 1 ? '' : 's'}.` +
+                    (quota.restantes === 0
+                      ? ' Ya no te queda cupo; cancelá una reserva para liberarlo.'
+                      : ` Te queda${quota.restantes === 1 ? '' : 'n'} ${quota.restantes}.`)}
+              </Text>
+            </Alert>
+          )}
+
           <NumberInput
             label="Cantidad Personas"
             name="pax"
@@ -309,7 +389,7 @@ export const CalendarModal = () => {
                 type="submit"
                 fullWidth
                 leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                disabled={formSubmitted && formValues.title.length === 0}
+                disabled={formSubmitted && (formValues.title.length === 0 || motivoFaltante)}
               >
                 {activeEvent?.id ? 'Modificar' : 'Guardar'}
               </Button>
@@ -323,30 +403,50 @@ export const CalendarModal = () => {
                 Cancelar
               </Button>
               {canDelete && (
-                <Button
-                  type="button"
-                  fullWidth
-                  color="red"
-                  variant="light"
-                  leftSection={<IconTrash size={16} />}
-                  onClick={onDelete}
-                >
-                  Eliminar reserva
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    fullWidth
+                    color="red"
+                    variant="light"
+                    leftSection={<IconTrash size={16} />}
+                    onClick={onDelete}
+                    disabled={!cancelacionEnPlazo}
+                  >
+                    Eliminar reserva
+                  </Button>
+                  {!cancelacionEnPlazo && (
+                    <Text size="xs" c="dimmed" ta="center">
+                      Solo se puede cancelar con al menos{' '}
+                      {CANCELACION_ANTICIPACION_MINIMA_HORAS} horas de anticipación.
+                    </Text>
+                  )}
+                </>
               )}
             </Stack>
           ) : (
             <Group justify="space-between" mt="md" gap="sm">
               {canDelete ? (
-                <Button
-                  type="button"
-                  color="red"
-                  variant="light"
-                  leftSection={<IconTrash size={16} />}
-                  onClick={onDelete}
+                <Tooltip
+                  label={`Solo se puede cancelar con al menos ${CANCELACION_ANTICIPACION_MINIMA_HORAS} horas de anticipación.`}
+                  disabled={cancelacionEnPlazo}
+                  withArrow
+                  multiline
+                  w={240}
                 >
-                  Eliminar
-                </Button>
+                  <Box>
+                    <Button
+                      type="button"
+                      color="red"
+                      variant="light"
+                      leftSection={<IconTrash size={16} />}
+                      onClick={onDelete}
+                      disabled={!cancelacionEnPlazo}
+                    >
+                      Eliminar
+                    </Button>
+                  </Box>
+                </Tooltip>
               ) : <span />}
               <Group gap="sm">
                 <Button
@@ -360,7 +460,7 @@ export const CalendarModal = () => {
                 <Button
                   type="submit"
                   leftSection={activeEvent?.id ? <IconEdit size={16} /> : <IconDeviceFloppy size={16} />}
-                  disabled={formSubmitted && formValues.title.length === 0}
+                  disabled={formSubmitted && (formValues.title.length === 0 || motivoFaltante)}
                 >
                   {activeEvent?.id ? 'Modificar' : 'Guardar'}
                 </Button>

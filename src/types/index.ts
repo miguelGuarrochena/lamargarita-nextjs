@@ -1,3 +1,5 @@
+import type { Motivo } from '@/lib/amigosQuota';
+
 export interface User {
   uid: string;
   name: string;
@@ -14,6 +16,8 @@ export interface CalendarEvent {
   title: string;
   notes?: string;
   booking: BookingType;
+  /** Familiar | Amigos. Obligatorio salvo en marcas administrativas (FR/VC). */
+  motivo?: Motivo;
   pax?: number;
   start: Date;
   end: Date;
@@ -24,6 +28,18 @@ export interface CalendarEvent {
 export type Event = CalendarEvent;
 
 export type BookingType = 'CT' | 'PA' | 'PR' | 'CS' | 'NC' | 'FL' | 'FR' | 'VC';
+
+export type { Motivo } from '@/lib/amigosQuota';
+
+/** Estado del cupo anual de reservas con motivo Amigos. */
+export interface AmigosQuota {
+  year: number;
+  /** `null` = sin límite. */
+  limite: number | null;
+  usadas: number;
+  /** `null` = sin límite. */
+  restantes: number | null;
+}
 
 export interface AuthState {
   status: 'checking' | 'authenticated' | 'not-authenticated';

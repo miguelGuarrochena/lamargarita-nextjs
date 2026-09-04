@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { DEFAULT_LIMITE_AMIGOS_ANUAL } from '@/lib/amigosQuota';
 
 export interface IUser extends Document {
   name: string;
@@ -6,6 +7,13 @@ export interface IUser extends Document {
   password: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  /**
+   * Cupo anual de reservas con motivo "Amigos" para esta persona.
+   * Número >= 0 -> ese máximo por año calendario (0 = no puede reservar Amigos).
+   * `null` -> sin límite.
+   * Ausente -> se aplica DEFAULT_LIMITE_AMIGOS_ANUAL.
+   */
+  limiteAmigosAnual?: number | null;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -24,6 +32,11 @@ const UserSchema = new Schema<IUser>({
   },
   resetPasswordToken: String,
   resetPasswordExpires: Date,
+  limiteAmigosAnual: {
+    type: Number,
+    default: DEFAULT_LIMITE_AMIGOS_ANUAL,
+    min: 0,
+  },
 });
 
 UserSchema.method('toJSON', function () {

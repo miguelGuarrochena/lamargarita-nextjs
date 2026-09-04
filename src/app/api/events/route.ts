@@ -4,6 +4,12 @@ import Event from '@/lib/models/Event';
 import '@/lib/models/User'; // Ensure User schema is registered
 import { validateJWT } from '@/lib/middleware';
 import { ApiErrorHandler, ERROR_MESSAGES } from '@/lib/errorHandler';
+import { createReservation } from '@/lib/amigosQuotaDb';
+import {
+  AmigosQuotaExceededError,
+  AmigosSlotContentionError,
+  MotivoRequeridoError,
+} from '@/lib/amigosQuota';
 
 // Simple date validation function for server-side use
 const isValidDate = (date: any): boolean => {
@@ -138,12 +144,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const event = new Event({
-      ...eventData,
-      user: decoded.uid,
-    });
-
-    const savedEvent = await event.save();
+    // El motivo obligatorio y el cupo anual de Amigos se resuelven en el
+    // servicio, que es el mismo que usa PUT /api/events/[id].
+    const savedEvent = await createReservation(decoded.uid, eventData);
 
     return NextResponse.json({
       ok: true,
@@ -166,6 +169,21 @@ export async function POST(request: NextRequest) {
           error: errorResponse.technicalMessage
         },
         { status: errorResponse.statusCode }
+      );
+    }
+
+    // Reglas de negocio de la reserva (motivo obligatorio / cupo de Amigos)
+    if (error instanceof MotivoRequeridoError || error instanceof AmigosQuotaExceededError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: error instanceof MotivoRequeridoError ? 400 : 409 }
+      );
+    }
+
+    if (error instanceof AmigosSlotContentionError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: 503 }
       );
     }
 
