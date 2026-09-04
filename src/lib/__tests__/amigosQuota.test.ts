@@ -283,3 +283,42 @@ describe('bloqueaPorCupoAmigos (estado del botón Crear/Reservar)', () => {
     expect(bloqueaPorCupoAmigos({ esAmigos: true, quota: null })).toBe(false);
   });
 });
+
+/**
+ * El formulario, el store y el backend tienen que decidir "falta el tipo de
+ * invitado" con el MISMO criterio. Si no, un valor puede pasar una guarda y
+ * fallar en la siguiente, dejando el Select con algo elegido y un cartel que
+ * pide elegir el tipo de invitado.
+ */
+describe('criterio único de "falta el tipo de invitado"', () => {
+  const valores = ['', 'amigos', 'AMIGOS', 'Amigo', 'MG', 'Navidad', ' Amigos', undefined, null];
+
+  it('ningún valor inválido se considera válido, ni siquiera los no vacíos', () => {
+    for (const v of valores) {
+      expect(isTipoInvitado(v)).toBe(false);
+    }
+  });
+
+  it('solo Familiar y Amigos son válidos, exactamente', () => {
+    expect(isTipoInvitado('Familiar')).toBe(true);
+    expect(isTipoInvitado('Amigos')).toBe(true);
+  });
+
+  it('el backend rechaza cualquiera de esos valores con el error tipado', () => {
+    for (const v of valores) {
+      expect(() => parseTipoInvitado({ booking: 'CT', tipoInvitado: v })).toThrow(
+        TipoInvitadoRequeridoError
+      );
+    }
+  });
+
+  it('el error informa qué valor llegó, para poder diagnosticar', () => {
+    try {
+      parseTipoInvitado({ booking: 'CT', tipoInvitado: 'amigos' });
+      expect.unreachable('debería haber lanzado');
+    } catch (e) {
+      expect(e).toBeInstanceOf(TipoInvitadoRequeridoError);
+      expect((e as TipoInvitadoRequeridoError).recibido).toBe('amigos');
+    }
+  });
+});

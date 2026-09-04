@@ -175,7 +175,17 @@ export async function POST(request: NextRequest) {
     // Reglas de negocio de la reserva (tipoInvitado obligatorio / cupo de Amigos)
     if (error instanceof TipoInvitadoRequeridoError || error instanceof AmigosQuotaExceededError) {
       return NextResponse.json(
-        { ok: false, msg: error.message, error: error.code, code: error.code },
+        {
+          ok: false,
+          msg: error.message,
+          error: error.code,
+          code: error.code,
+          // Qué llegó realmente en el payload: hace evidente si el cliente está
+          // mandando el campo con otro nombre o con un valor inesperado.
+          ...(error instanceof TipoInvitadoRequeridoError
+            ? { tipoInvitadoRecibido: error.recibido ?? null }
+            : {}),
+        },
         { status: error instanceof TipoInvitadoRequeridoError ? 400 : 409 }
       );
     }

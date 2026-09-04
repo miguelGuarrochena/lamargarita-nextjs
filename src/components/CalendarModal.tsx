@@ -16,6 +16,7 @@ import {
   TIPO_AMIGOS,
   bloqueaPorCupoAmigos,
   getReservaYear,
+  isTipoInvitado,
   puedeCancelarse,
   requiereTipoInvitado,
 } from '@/lib/amigosQuota';
@@ -144,7 +145,11 @@ export const CalendarModal = () => {
   // Las marcas administrativas (feriado / vacaciones) no son reservas de una
   // persona: no piden tipo de invitado ni consumen cupo.
   const tipoInvitadoAplica = requiereTipoInvitado(formValues.booking);
-  const tipoInvitadoFaltante = tipoInvitadoAplica && formValues.tipoInvitado === '';
+  // Mismo criterio que el store y que el backend (`isTipoInvitado`). Si acá se
+  // chequeara solo `=== ''`, un valor distinto de vacío pero inválido pasaría
+  // esta guarda y recién fallaría más adelante, con el Select mostrando algo
+  // elegido y un cartel pidiendo elegir el tipo de invitado.
+  const tipoInvitadoFaltante = tipoInvitadoAplica && !isTipoInvitado(formValues.tipoInvitado);
 
   const reservaYear = useMemo(() => {
     try {

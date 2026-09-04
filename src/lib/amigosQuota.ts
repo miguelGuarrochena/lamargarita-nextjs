@@ -105,9 +105,13 @@ export function puedeCancelarse(start: Date | string | number, now: Date = new D
 
 export class TipoInvitadoRequeridoError extends Error {
   readonly code = 'TIPO_INVITADO_REQUERIDO';
-  constructor(message = 'Tenés que elegir el tipo de invitado: Familiar o Amigos.') {
+  /** Qué llegó realmente en el payload. Para diagnóstico, no se muestra al usuario. */
+  readonly recibido: unknown;
+
+  constructor(recibido?: unknown, message = 'Tenés que elegir el tipo de invitado: Familiar o Amigos.') {
     super(message);
     this.name = 'TipoInvitadoRequeridoError';
+    this.recibido = recibido;
   }
 }
 
@@ -162,7 +166,7 @@ export class AmigosSlotContentionError extends Error {
  */
 export function parseTipoInvitado(input: { booking?: unknown; tipoInvitado?: unknown }): TipoInvitado | undefined {
   if (!requiereTipoInvitado(input.booking)) return undefined;
-  if (!isTipoInvitado(input.tipoInvitado)) throw new TipoInvitadoRequeridoError();
+  if (!isTipoInvitado(input.tipoInvitado)) throw new TipoInvitadoRequeridoError(input.tipoInvitado);
   return input.tipoInvitado;
 }
 
