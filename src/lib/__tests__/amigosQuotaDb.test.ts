@@ -654,3 +654,170 @@ describe('la edición no puede esquivar la ventana de cancelación', () => {
     expect(editada?.title).toBe('Otro título');
   });
 });
+
+describe('regla definitiva del cupo de Amigos', () => {
+  it('1. Familiar es ilimitado', async () => {
+    for (let i = 0; i < 12; i += 1) {
+      await createReservation(PERSONA_NORMAL, reserva({ motivo: 'Familiar' }));
+    }
+    expect(FakeEventModel.store).toHaveLength(12);
+  });
+
+  it('2. las reservas Familiar nunca afectan el cupo de Amigos', async () => {
+    for (let i = 0; i < 6; i += 1) {
+      await createReservation(GG, reserva({ motivo: 'Familiar' }));
+    }
+    expect(await getAmigosQuotaState(GG, 2026)).toMatchObject({ usadas: 0, restantes: 4 });
+
+    // Y siguen sin consumir cupo después de reservar Amigos.
+    await createReservation(GG, reserva());
+    await createReservation(GG, reserva({ motivo: 'Familiar' }));
+    expect(await getAmigosQuotaState(GG, 2026)).toMatchObject({ usadas: 1, restantes: 3 });
+  });
+
+  it('3. usuario normal con 0 reservas de Amigos puede reservar', async () => {
+    expect(await getAmigosQuotaState(PERSONA_NORMAL, 2026)).toMatchObject({
+      limite: 1,
+      usadas: 0,
+      restantes: 1,
+    });
+    await expect(createReservation(PERSONA_NORMAL, reserva())).resolves.toBeTruthy();
+  });
+
+  it('4. usuario normal con 1 reserva de Amigos no puede crear otra', async () => {
+    await createReservation(PERSONA_NORMAL, reserva());
+    await expect(createReservation(PERSONA_NORMAL, reserva())).rejects.toBeInstanceOf(
+      AmigosQuotaExceededError
+    );
+  });
+
+  it('5. GG con 3 reservas de Amigos puede crear otra', async () => {
+    for (let i = 0; i < 3; i += 1) await createReservation(GG, reserva());
+    expect(await getAmigosQuotaState(GG, 2026)).toMatchObject({ usadas: 3, restantes: 1 });
+    await expect(createReservation(GG, reserva())).resolves.toBeTruthy();
+  });
+
+  it('6. GG con 4 reservas de Amigos no puede crear otra', async () => {
+    for (let i = 0; i < 4; i += 1) await createReservation(GG, reserva());
+    expect(await getAmigosQuotaState(GG, 2026)).toMatchObject({ usadas: 4, restantes: 0 });
+    await expect(createReservation(GG, reserva())).rejects.toBeInstanceOf(
+      AmigosQuotaExceededError
+    );
+  });
+
+  it('7. Juan Pablo es ilimitado', async () => {
+    for (let i = 0; i < 10; i += 1) await createReservation(JUAN_PABLO, reserva());
+    expect(await getAmigosQuotaState(JUAN_PABLO, 2026)).toMatchObject({
+      limite: null,
+      usadas: 10,
+      restantes: null,
+    });
+  });
+
+  it('8. una reserva FUTURA de Amigos (octubre) cuenta para el cupo del año', async () => {
+    // Hoy es junio 2026; la reserva es para octubre 2026: todavía no ocurrió,
+    // pero ya consume el cupo anual.
+    const octubre = await createReservation(
+      PERSONA_NORMAL,
+      reserva({
+        title: 'Octubre con amigos',
+        start: new Date('2026-10-15T15:00:00Z'),
+        end: new Date('2026-10-18T15:00:00Z'),
+      })
+    );
+    expect(octubre.start.getTime()).toBeGreaterThan(AHORA.getTime());
+
+    expect(await getAmigosQuotaState(PERSONA_NORMAL, 2026)).toMatchObject({
+      usadas: 1,
+      restantes: 0,
+    });
+
+    await expect(
+      createReservation(
+        PERSONA_NORMAL,
+        reserva({
+          start: new Date('2026-12-01T15:00:00Z'),
+          end: new Date('2026-12-03T15:00:00Z'),
+        })
+      )
+    ).rejects.toBeInstanceOf(AmigosQuotaExceededError);
+  });
+
+  it('8b. una reserva de octubre cuenta aunque amigosYear esté desincronizado', async () => {
+    // El año se deriva del `start`, no de `amigosYear`: una reserva movida de
+    // fecha por fuera de este servicio no puede volverse invisible al cupo.
+    seedReservaHistorica({
+      user: PERSONA_NORMAL,
+      start: new Date('2026-10-15T15:00:00Z'),
+      end: new Date('2026-10-18T15:00:00Z'),
+      amigosYear: 2025,
+      amigosSlot: 1,
+    });
+
+    expect(await getAmigosQuotaState(PERSONA_NORMAL, 2026)).toMatchObject({
+      usadas: 1,
+      restantes: 0,
+    });
+    expect(await getAmigosQuotaState(PERSONA_NORMAL, 2025)).toMatchObject({ usadas: 0 });
+
+    await expect(createReservation(PERSONA_NORMAL, reserva())).rejects.toBeInstanceOf(
+      AmigosQuotaExceededError
+    );
+  });
+
+  it('9. una reserva cancelada no genera falsos bloqueos', async () => {
+    const creada = await createReservation(
+      PERSONA_NORMAL,
+      reserva({ start: enHoras(48), end: enHoras(72) })
+    );
+    await cancelReservation(String(creada._id), creada as never);
+
+    expect(await getAmigosQuotaState(PERSONA_NORMAL, 2026)).toMatchObject({
+      usadas: 0,
+      restantes: 1,
+    });
+    await expect(createReservation(PERSONA_NORMAL, reserva())).resolves.toBeTruthy();
+  });
+
+  it('10. el backend rechaza aunque el frontend no haya bloqueado', async () => {
+    await createReservation(PERSONA_NORMAL, reserva());
+
+    // Request "cruda", como si alguien salteara el formulario por completo:
+    // sin pasar por el estado del aviso ni por el botón deshabilitado.
+    await expect(
+      createReservation(PERSONA_NORMAL, {
+        title: 'Salteando el formulario',
+        booking: 'PR',
+        motivo: 'Amigos',
+        pax: 2,
+        start: new Date('2026-11-20T15:00:00Z'),
+        end: new Date('2026-11-22T15:00:00Z'),
+      })
+    ).rejects.toBeInstanceOf(AmigosQuotaExceededError);
+
+    expect(FakeEventModel.store).toHaveLength(1);
+  });
+
+  it('10b. el backend ignora un cupo falseado en el payload del cliente', async () => {
+    await createReservation(PERSONA_NORMAL, reserva());
+
+    // El cliente intenta inyectar amigosYear/amigosSlot para colarse.
+    await expect(
+      createReservation(PERSONA_NORMAL, {
+        ...reserva(),
+        amigosYear: 1999,
+        amigosSlot: 99,
+      })
+    ).rejects.toBeInstanceOf(AmigosQuotaExceededError);
+  });
+
+  it('el cupo mostrado al editar no se cuenta contra sí mismo', async () => {
+    const creada = await createReservation(PERSONA_NORMAL, reserva());
+
+    // Sin excluirla, el formulario diría "0 disponibles" al abrir su propia reserva.
+    expect(await getAmigosQuotaState(PERSONA_NORMAL, 2026)).toMatchObject({ restantes: 0 });
+    expect(
+      await getAmigosQuotaState(PERSONA_NORMAL, 2026, String(creada._id))
+    ).toMatchObject({ usadas: 0, restantes: 1 });
+  });
+});

@@ -89,10 +89,13 @@ configurable por persona, en el campo `limiteAmigosAnual` de la colección
 | `0` | No puede reservar con motivo Amigos |
 | `null` | Sin límite |
 
-Cuentan **todas** las reservas de Amigos del año en curso que no estén
-canceladas, incluidas las que ya existían antes de esta funcionalidad (las que
-no tienen cupo asignado se imputan al año de su fecha de entrada, sin
-modificarlas ni migrarlas). Las reservas `Familiar` nunca consumen cupo.
+Cuentan **todas** las reservas de Amigos del año que no estén canceladas,
+incluidas las **futuras** (una reserva de Amigos para octubre ya consume el cupo
+de ese año) y las que ya existían antes de esta funcionalidad, sin modificarlas
+ni migrarlas. El año de una reserva se deriva **siempre de su fecha de entrada**
+(`start`); `amigosYear` existe solo como clave del índice único de cupos y nunca
+se usa para contar. Las reservas `Familiar` son ilimitadas y nunca consumen
+cupo.
 
 ### Cancelación: 24 horas de anticipación
 

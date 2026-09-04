@@ -6,6 +6,7 @@ import { validateJWT } from '@/lib/middleware';
 import { ApiErrorHandler } from '@/lib/errorHandler';
 import { getAmigosQuotaState } from '@/lib/amigosQuotaDb';
 import { getReservaYear } from '@/lib/amigosQuota';
+import { isValidMongoId } from '@/lib/eventOwnership';
 
 /**
  * Cupo anual de reservas "Amigos" de la persona autenticada.
@@ -24,7 +25,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, msg: 'Año inválido' }, { status: 400 });
     }
 
-    const quota = await getAmigosQuotaState(decoded.uid, year);
+    // Al editar una reserva, esa reserva no debe contarse contra sí misma.
+    const excludeParam = request.nextUrl.searchParams.get('excludeEventId');
+    const excludeEventId = isValidMongoId(excludeParam ?? undefined) ? excludeParam! : undefined;
+
+    const quota = await getAmigosQuotaState(decoded.uid, year, excludeEventId);
 
     return NextResponse.json({ ok: true, quota });
   } catch (error) {

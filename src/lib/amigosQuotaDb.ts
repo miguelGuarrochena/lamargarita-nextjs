@@ -76,9 +76,11 @@ export async function getLimiteAmigos(userId: string): Promise<number | null> {
  * flujo) no tienen cupo asignado y aun así consumen límite; si contáramos solo
  * los slots, se colarían reservas de más.
  *
- * El año sale de `amigosYear` cuando está, y si no del `start` de la reserva,
- * con el mismo criterio de año calendario que usa el resto del sistema. Así no
- * hace falta tocar ni migrar ninguna reserva histórica.
+ * El año SIEMPRE se deriva del `start` de la reserva. `amigosYear` existe solo
+ * como clave del índice único de cupos: si se lo usara para contar, sería una
+ * segunda fuente de verdad que puede quedar desincronizada de la fecha real
+ * (una reserva movida de fecha por fuera de este servicio, o editada directo en
+ * la base) y esa reserva se volvería invisible para el cupo de su año.
  *
  * Como cancelar es borrar el documento, "viva" == "el documento existe": una
  * reserva cancelada libera el cupo automáticamente.
@@ -95,10 +97,10 @@ async function readAmigosUsage(
   if (excludeEventId) filter._id = { $ne: new mongoose.Types.ObjectId(excludeEventId) };
 
   const docs = await Event.find(filter)
-    .select('amigosSlot amigosYear start')
-    .lean<{ amigosSlot?: number; amigosYear?: number; start: Date }[]>();
+    .select('amigosSlot start')
+    .lean<{ amigosSlot?: number; start: Date }[]>();
 
-  const delAnio = docs.filter((d) => (d.amigosYear ?? getReservaYear(d.start)) === year);
+  const delAnio = docs.filter((d) => getReservaYear(d.start) === year);
 
   return {
     usadas: delAnio.length,
@@ -118,11 +120,13 @@ export interface AmigosQuotaState {
 /** Estado del cupo para mostrarle a la persona en el formulario. */
 export async function getAmigosQuotaState(
   userId: string,
-  year: number = getReservaYear(new Date())
+  year: number = getReservaYear(new Date()),
+  /** Reserva que se está editando: no debe contarse contra sí misma. */
+  excludeEventId?: string
 ): Promise<AmigosQuotaState> {
   const [limite, usage] = await Promise.all([
     getLimiteAmigos(userId),
-    readAmigosUsage(userId, year),
+    readAmigosUsage(userId, year, excludeEventId),
   ]);
   const { usadas } = usage;
   return {
@@ -178,7 +182,7 @@ function assertNoLiberaCupoFueraDePlazo(
 ): void {
   if (existing.motivo !== MOTIVO_AMIGOS) return;
 
-  const yearActual = existing.amigosYear ?? getReservaYear(existing.start);
+  const yearActual = getReservaYear(existing.start);
   const liberaCupo = nuevoMotivo !== MOTIVO_AMIGOS || nuevoYear !== yearActual;
   if (!liberaCupo) return;
 
