@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { AppShell, Loader, Center, Box, Overlay } from '@mantine/core';
+import { AppShell, Loader, Center, Box, Overlay, Text } from '@mantine/core';
 
 import { Navbar } from '@/components/Navbar';
 import { useUiStore, useCalendarStore, useAuthStore } from '@/hooks';
 import { useSpecialEvents } from '@/hooks/useSpecialEvents';
 import { canManageEvent } from '@/lib/eventOwnership';
+import { AVISO_VENTANA_RESERVAS, getMaxBookingDate } from '@/lib/bookingWindow';
 import { BookingType, CalendarEvent } from '@/types';
 import type { CalendarViewProps } from '@/components/CalendarView';
 
@@ -40,6 +41,10 @@ export default function CalendarPage() {
     () => [...events, ...specialEvents],
     [events, specialEvents]
   );
+
+  // Última fecha reservable. Se calcula al montar: la ventana es móvil, pero
+  // para que corra un día basta con que la persona vuelva a entrar al calendario.
+  const maxBookingDate = useMemo(() => getMaxBookingDate(), []);
 
   useEffect(() => {
     import('@/components/CalendarView').then(() => setCalendarReady(true));
@@ -98,6 +103,13 @@ export default function CalendarPage() {
     };
   }, []);
 
+  // Los días posteriores a la ventana se ven deshabilitados. No hay aviso ni
+  // popup: simplemente no se pueden elegir.
+  const dayStyleGetter = useCallback(
+    (date: Date) => (date > maxBookingDate ? { className: 'lm-day-fuera-de-ventana' } : {}),
+    [maxBookingDate]
+  );
+
   const createReservationForDate = useCallback(
     (date: Date) => {
       const today = new Date();
@@ -105,8 +117,9 @@ export default function CalendarPage() {
       const target = new Date(date);
       target.setHours(0, 0, 0, 0);
 
-      // No se puede reservar en el pasado.
-      if (target < today) {
+      // No se puede reservar en el pasado ni más allá de la ventana de reservas.
+      // Sin aviso: la fecha ya se ve deshabilitada en el calendario.
+      if (target < today || target > maxBookingDate) {
         setActiveEvent(null);
         return;
       }
@@ -120,7 +133,7 @@ export default function CalendarPage() {
       } as CalendarEvent);
       openDateModal();
     },
-    [setActiveEvent, openDateModal]
+    [setActiveEvent, openDateModal, maxBookingDate]
   );
 
   const openEventEditor = useCallback(
@@ -157,6 +170,13 @@ export default function CalendarPage() {
         adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
       }
 
+      // Fuera de la ventana de reservas no se abre el modal, y sin popup. Solo
+      // se mira la entrada: la salida puede caer después del tope.
+      if (slotDate > maxBookingDate) {
+        setActiveEvent(null);
+        return;
+      }
+
       setActiveEvent({
         start: slotInfo.start,
         end: adjustedEndDate,
@@ -166,7 +186,7 @@ export default function CalendarPage() {
       } as CalendarEvent);
       openDateModal();
     },
-    [setActiveEvent, openDateModal]
+    [setActiveEvent, openDateModal, maxBookingDate]
   );
 
   const onDrillDown = useCallback(
@@ -193,10 +213,16 @@ export default function CalendarPage() {
 
   const onNavigate = useCallback(
     (newDate: Date) => {
+      // El botón de "siguiente" ya se deshabilita en el último período
+      // reservable; esto cubre cualquier otra vía de navegación.
+      const periodoInicio = new Date(newDate);
+      periodoInicio.setHours(0, 0, 0, 0);
+      if (periodoInicio > maxBookingDate) return;
+
       setCurrentDate(newDate);
       setActiveEvent(null);
     },
-    [setActiveEvent]
+    [setActiveEvent, maxBookingDate]
   );
 
   const showBlockingLoader =
@@ -224,6 +250,8 @@ export default function CalendarPage() {
     onView: onViewChanged,
     onNavigate,
     eventPropGetter: eventStyleGetter,
+    dayPropGetter: dayStyleGetter,
+    maxBookingDate,
   };
 
   return (
@@ -244,8 +272,14 @@ export default function CalendarPage() {
           py={6}
           className="lm-calendar-wrap"
           onClick={handleCalendarClick}
+          style={{ display: 'flex', flexDirection: 'column' }}
         >
-          <CalendarView {...calendarProps} />
+          <Box style={{ flex: 1, minHeight: 0 }}>
+            <CalendarView {...calendarProps} />
+          </Box>
+          <Text size="xs" c="dimmed" ta="center" mt={6}>
+            {AVISO_VENTANA_RESERVAS}
+          </Text>
         </Box>
 
         {showBlockingLoader && (

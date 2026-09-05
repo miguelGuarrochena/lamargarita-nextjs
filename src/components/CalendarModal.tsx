@@ -20,6 +20,7 @@ import {
   puedeCancelarse,
   requiereTipoInvitado,
 } from '@/lib/amigosQuota';
+import { getMaxBookingDate } from '@/lib/bookingWindow';
 import { useAmigosQuota } from '@/hooks/useAmigosQuota';
 import { IconDeviceFloppy, IconEdit, IconX, IconConfetti, IconTrash, IconUsersGroup, IconAlertCircle } from '@tabler/icons-react';
 import { AvisoCupoAmigos } from './AvisoCupoAmigos';
@@ -132,6 +133,9 @@ export const CalendarModal = () => {
   const { user } = useAuthStore();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const [formSubmitted, setFormSubmitted] = useState(false);
+  // Tope de la ventana de reservas: aplica solo a la fecha de entrada. La
+  // salida puede ser posterior — se limita cuándo empieza la estadía, no cuánto dura.
+  const maxBookingDate = useMemo(() => getMaxBookingDate(), []);
 
   const [formValues, setFormValues] = useState({
     title: '',
@@ -336,6 +340,7 @@ export const CalendarModal = () => {
               locale="es"
               dateFormat="dd/MM/yyyy"
               minDate={new Date()}
+              maxDate={maxBookingDate}
               portalId="root-portal"
               popperPlacement="bottom-start"
               required

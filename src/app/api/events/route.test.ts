@@ -29,13 +29,21 @@ function crearRequest(body: Record<string, unknown>) {
   }) as never;
 }
 
+/** Fechas relativas a hoy: la ventana de reservas es móvil. */
+const enDias = (dias: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  d.setHours(12, 0, 0, 0);
+  return d.toISOString();
+};
+
 const payloadBase = {
   title: 'Fin de semana',
   notes: '',
   booking: 'CT',
   pax: 4,
-  start: new Date('2026-11-20T15:00:00Z').toISOString(),
-  end: new Date('2026-11-22T15:00:00Z').toISOString(),
+  start: enDias(30),
+  end: enDias(32),
 };
 
 beforeEach(() => {
@@ -109,5 +117,52 @@ describe('POST /api/events — tipoInvitado del formulario', () => {
 
     expect(res.status).toBe(200);
     expect(data.evento.tipoInvitado).toBeUndefined();
+  });
+});
+
+describe('POST /api/events — ventana de reservas', () => {
+  it('una reserva dentro de los 3 meses se guarda igual que siempre', async () => {
+    const res = await POST(
+      crearRequest({ ...payloadBase, start: enDias(80), end: enDias(82), tipoInvitado: 'Familiar' })
+    );
+
+    expect(res.status).toBe(200);
+    expect(FakeEventModel.store).toHaveLength(1);
+  });
+
+  it('rechaza una fecha de entrada más allá de los 3 meses aunque venga directo a la API', async () => {
+    const res = await POST(
+      crearRequest({ ...payloadBase, start: enDias(200), end: enDias(202), tipoInvitado: 'Familiar' })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.ok).toBe(false);
+    expect(data.code).toBe('FUERA_DE_VENTANA_RESERVA');
+    expect(FakeEventModel.store).toHaveLength(0);
+  });
+
+  it('entrada dentro de la ventana y salida posterior al tope: se guarda', async () => {
+    // La ventana limita con cuánta anticipación se puede EMPEZAR una reserva,
+    // no cuánto puede durar la estadía.
+    const res = await POST(
+      crearRequest({ ...payloadBase, start: enDias(85), end: enDias(120), tipoInvitado: 'Familiar' })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.ok).toBe(true);
+    expect(FakeEventModel.store).toHaveLength(1);
+  });
+
+  it('entrada fuera de la ventana y salida fuera también: se rechaza por la entrada', async () => {
+    const res = await POST(
+      crearRequest({ ...payloadBase, start: enDias(120), end: enDias(130), tipoInvitado: 'Familiar' })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.code).toBe('FUERA_DE_VENTANA_RESERVA');
+    expect(FakeEventModel.store).toHaveLength(0);
   });
 });

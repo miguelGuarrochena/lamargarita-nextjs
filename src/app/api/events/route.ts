@@ -10,6 +10,7 @@ import {
   AmigosSlotContentionError,
   TipoInvitadoRequeridoError,
 } from '@/lib/amigosQuota';
+import { FueraDeVentanaDeReservaError, assertDentroDeVentana } from '@/lib/bookingWindow';
 
 // Simple date validation function for server-side use
 const isValidDate = (date: any): boolean => {
@@ -144,6 +145,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ventana de reservas: aplica solo a la fecha de entrada. El calendario ya
+    // deshabilita esas fechas, pero un request directo tiene que rebotar igual.
+    // Tira `FueraDeVentanaDeReservaError`, que el catch traduce a 400.
+    assertDentroDeVentana({ start: startDate });
+
     // El tipoInvitado obligatorio y el cupo anual de Amigos se resuelven en el
     // servicio, que es el mismo que usa PUT /api/events/[id].
     const savedEvent = await createReservation(decoded.uid, eventData);
@@ -169,6 +175,15 @@ export async function POST(request: NextRequest) {
           error: errorResponse.technicalMessage
         },
         { status: errorResponse.statusCode }
+      );
+    }
+
+    // Fecha fuera de la ventana de reservas: el calendario ya la deshabilita,
+    // pero un request directo tiene que rebotar igual.
+    if (error instanceof FueraDeVentanaDeReservaError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: 400 }
       );
     }
 

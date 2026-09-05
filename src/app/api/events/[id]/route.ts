@@ -12,6 +12,7 @@ import {
   CancelacionFueraDePlazoError,
   TipoInvitadoRequeridoError,
 } from '@/lib/amigosQuota';
+import { FueraDeVentanaDeReservaError, assertEdicionDentroDeVentana } from '@/lib/bookingWindow';
 
 // Simple date validation function for server-side use
 const isValidDate = (date: any): boolean => {
@@ -196,6 +197,14 @@ export async function PUT(
       );
     }
 
+    // Ventana de reservas, solo cuando cambia la entrada: una reserva vieja se
+    // puede seguir editando y se le puede estirar la salida, pero la entrada no
+    // se puede mover más allá del tope.
+    assertEdicionDentroDeVentana({
+      start: startDate,
+      actual: { start: event.start },
+    });
+
     // Mismo servicio que POST: valida el tipoInvitado y reserva/libera el cupo anual
     // de Amigos según cómo quede la reserva después de la edición.
     const updatedEvent = await updateReservation(decoded.uid, eventId, eventData, event);
@@ -221,6 +230,14 @@ export async function PUT(
           error: errorResponse.technicalMessage
         },
         { status: errorResponse.statusCode }
+      );
+    }
+
+    // Mover la reserva más allá de la ventana de reservas.
+    if (error instanceof FueraDeVentanaDeReservaError) {
+      return NextResponse.json(
+        { ok: false, msg: error.message, error: error.code, code: error.code },
+        { status: 400 }
       );
     }
 

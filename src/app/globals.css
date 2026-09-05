@@ -741,6 +741,19 @@ body {
   cursor: pointer;
 }
 
+/* Días posteriores a la ventana de reservas: no se pueden elegir. */
+.rbc-day-bg.lm-day-fuera-de-ventana {
+  background-color: #f1f3f5;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(0, 0, 0, 0.035) 5px,
+    rgba(0, 0, 0, 0.035) 10px
+  );
+  cursor: not-allowed;
+}
+
 .rbc-event {
   border-radius: 8px;
   border: none;
@@ -797,6 +810,16 @@ body {
 .rbc-toolbar button:hover {
   background: var(--lm-accent-soft);
   border-color: #c5ddd5;
+}
+
+/* Último período reservable alcanzado: no se puede avanzar más. */
+.rbc-toolbar button:disabled,
+.rbc-toolbar button:disabled:hover {
+  background: var(--lm-bg);
+  border-color: var(--lm-border);
+  color: var(--lm-text-dim);
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .rbc-toolbar button.rbc-active,
